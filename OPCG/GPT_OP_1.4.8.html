@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Card Battle Game</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #0b0b0f;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 1000px;
+            height: 670px;
+            background: #1b1b24;
+            border: 4px solid #d4af37;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 0 25px rgba(212, 175, 55, 0.4);
+            border-radius: 6px;
+            overflow: hidden;
+            transform: scale(1.15);
+            transform-origin: center center;
+        }
+
+        .top-bar {
+            height: 60px;
+            background: #0f0f14;
+            border-bottom: 2px solid #d4af37;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 2;
+        }
+        .status-box { display: flex; align-items: center; gap: 10px; }
+        .avatar {
+            width: 42px; height: 42px;
+            background: #2a2a35; border: 2px solid #d4af37; border-radius: 4px;
+            display: flex; align-items: center; justify-content: center; font-size: 20px;
+            overflow: hidden;
+        }
+        .avatar img { width: 100%; height: 100%; object-fit: contain; }
+        .bars { display: flex; flex-direction: column; gap: 3px; }
+        .bar-container {
+            width: 160px; height: 14px; background: #333; border: 1px solid #555;
+            position: relative; border-radius: 2px; overflow: hidden;
+        }
+        .hp-fill { height: 100%; background: #e63946; width: 100%; transition: width 0.3s; }
+        .en-fill { height: 100%; background: #457b9d; width: 100%; transition: width 0.3s; }
+        .bar-text {
+            position: absolute; width: 100%; height: 100%; font-size: 10px;
+            text-align: center; line-height: 14px; font-weight: bold; color: #fff;
+            text-shadow: 1px 1px 2px #000; top: 0; left: 0;
+        }
+        .round-indicator {
+            font-size: 14px; font-weight: bold; color: #d4af37;
+            border: 2px solid #d4af37; padding: 3px 12px; background: #000; border-radius: 3px;
+        }
+        .bgm-btn {
+            background: #000; border: 1px solid #d4af37; color: #ffd166;
+            padding: 4px 8px; font-size: 14px; cursor: pointer; border-radius: 4px; margin-left: 8px;
+        }
+
+        .center-area {
+            flex: 1; position: relative; background: #252530;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column; padding: 10px;
+        }
+        
+        .map-grid-main {
+            display: grid; grid-template-columns: repeat(4, 180px); grid-template-rows: repeat(4, 85px);
+            gap: 6px; 
+            background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('Map_OP2.jpg');
+            background-size: cover;
+            background-position: center;
+            padding: 8px; border: 2px solid #555; border-radius: 6px;
+            margin-top: 25px;
+            overflow: visible !important;
+        }
+        .cell-main {
+            background: rgba(240, 240, 245, 0.35); 
+            border: 1px solid rgba(255,255,255,0.4); 
+            border-radius: 4px;
+            display: flex; position: relative;
+            transition: background 0.2s;
+            overflow: visible !important;
+        }
+        .cell-sub-left, .cell-sub-right {
+            flex: 1; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 32px;
+            position: relative;
+            overflow: visible !important;
+        }
+        .cell-main.p1-here { background: rgba(69, 123, 157, 0.5); border-color: #457b9d; }
+        .cell-main.ai-here { background: rgba(230, 57, 70, 0.5); border-color: #e63946; }
+        .cell-main.both-here { background: rgba(150, 80, 150, 0.6); border-color: #ffd166; }
+        
+        .cell-main.p1-attack-flash { animation: flash-p1 0.5s ease-in-out 2; }
+        .cell-main.ai-attack-flash { animation: flash-ai 0.5s ease-in-out 2; }
+
+        @keyframes flash-p1 {
+            0%, 100% { background: rgba(240, 240, 245, 0.35); }
+            50% { background: rgba(69, 123, 157, 0.9); border-color: #a8dadc; }
+        }
+        @keyframes flash-ai {
+            0%, 100% { background: rgba(240, 240, 245, 0.35); }
+            50% { background: rgba(230, 57, 70, 0.9); border-color: #ffbe0b; }
+        }
+
+        .map-char-icon {
+            width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+            position: relative;
+            overflow: visible !important;
+        }
+        .map-char-icon img {
+            height: 95% !important; width: auto !important; max-width: 100% !important; object-fit: contain !important;
+            transition: transform 0.2s ease;
+        }
+
+        /* 루피 캐릭터 위치 보정 */
+        .map-char-icon img[src*="Luffy Stnd.gif"] {
+            transform: scale(1.1) translateY(-4%) !important;
+            transform-origin: center center;
+        }
+        .face-left .map-char-icon img[src*="Luffy Stnd.gif"] {
+            transform: scaleX(-1) scale(1.1) translateY(-4%) !important;
+        }
+
+        /* 유스타스 키드 보정 */
+        .map-char-icon img[src*="Kid_Std_Trans.gif"] {
+            transform: scale(0.95) translateY(4%) !important;
+            transform-origin: center center;
+        }
+        .face-left .map-char-icon img[src*="Kid_Std_Trans.gif"] {
+            transform: scaleX(-1) scale(0.95) translateY(4%) !important;
+        }
+        
+        .face-left img, .face-left .kaido-anim, .face-left .zoro-anim, .face-left .bb-anim {
+            transform: scaleX(-1) !important;
+        }
+
+        .map-char-icon img.action-anim-gif {
+            transform: scale(2.0) !important;
+            transform-origin: center center;
+            position: absolute !important;
+            z-index: 100 !important;
+        }
+        .face-left .map-char-icon img.action-anim-gif {
+            transform: scaleX(-1) scale(2.0) !important;
+            transform-origin: center center;
+            position: absolute !important;
+            z-index: 100 !important;
+        }
+
+        .map-char-icon img.law-action-anim-gif {
+            transform: scale(1.4) translate(15%, -15%) !important;
+            transform-origin: center center;
+            position: absolute !important;
+            z-index: 100 !important;
+        }
+        .face-left .map-char-icon img.law-action-anim-gif {
+            transform: scaleX(-1) scale(1.4) translate(-15%, -15%) !important;
+            transform-origin: center center;
+            position: absolute !important;
+            z-index: 100 !important;
+        }
+
+        /* 조로 애니메이션 */
+        .zoro-anim {
+            height: 95%; width: 100%;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            transform: scale(0.85) translateY(6%) !important;
+            transform-origin: center center;
+            animation: zoroBreathing 0.6s steps(1) infinite;
+        }
+        .face-left .zoro-anim {
+            transform: scaleX(-1) scale(0.85) translateY(6%) !important;
+        }
+        @keyframes zoroBreathing {
+            0%   { background-image: url('Zoro_Stnd_Trans01.png'); }
+            25%  { background-image: url('Zoro_Stnd_Trans02.png'); }
+            50%  { background-image: url('Zoro_Stnd_Trans03.png'); }
+            75%  { background-image: url('Zoro_Stnd_Trans04.png'); }
+            100% { background-image: url('Zoro_Stnd_Trans01.png'); }
+        }
+
+        /* 카이도 애니메이션 */
+        .kaido-anim {
+            height: 95%; width: 100%;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            animation: kaidoBreathing 0.5s steps(1) infinite;
+        }
+        @keyframes kaidoBreathing {
+            0%   { background-image: url('Kaido standing 01.png'); }
+            25%  { background-image: url('Kaido standing 02.png'); }
+            50%  { background-image: url('Kaido standing 03.png'); }
+            75%  { background-image: url('Kaido standing 04.png'); }
+            100% { background-image: url('Kaido standing 01.png'); }
+        }
+
+        /* 검은수염 애니메이션 */
+        .bb-anim {
+            height: 95%; width: 100%;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            animation: bbBreathing 0.6s steps(1) infinite;
+        }
+        @keyframes bbBreathing {
+            0%   { background-image: url('BB_Stnd_Trans01.png'); }
+            25%  { background-image: url('BB_Stnd_Trans02.png'); }
+            50%  { background-image: url('BB_Stnd_Trans03.png'); }
+            75%  { background-image: url('BB_Stnd_Trans04.png'); }
+            100% { background-image: url('BB_Stnd_Trans01.png'); }
+        }
+
+        #battle-log {
+            position: absolute; top: 4px; font-size: 12px; color: #ffd166;
+            background: rgba(0,0,0,0.85); padding: 5px 18px; border-radius: 12px; border: 1px solid #d4af37; z-index: 5;
+        }
+
+        .select-deck-grid {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+            max-width: 820px; justify-items: center;
+        }
+
+        .played-cards-area {
+            display: flex; gap: 8px; z-index: 2;
+            width: 300px; height: 112px; align-items: center; justify-content: center;
+        }
+
+        .mini-played-card {
+            width: 84px; height: 110px; background: #2a2a35; border: 2px solid #d4af37;
+            border-radius: 5px; display: flex; flex-direction: column; align-items: center;
+            justify-content: space-between; font-size: 9px; text-align: center; padding: 4px; color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.6); transition: all 0.3s ease;
+        }
+        .mini-played-card.attack { background: #351c21; border-color: #e63946; }
+        .mini-played-card.move { background: #1c2635; border-color: #457b9d; }
+        .mini-played-card.support { background: #1c3530; border-color: #2a9d8f; }
+
+        .mini-played-card.card-back {
+            background-color: #3f3f4a !important;
+            border-color: #666675 !important;
+            background-image: repeating-linear-gradient(45deg, #2b2b36 0, #2b2b36 6px, #3f3f4a 6px, #3f3f4a 12px),
+                              repeating-linear-gradient(-45deg, #2b2b36 0, #2b2b36 6px, #3f3f4a 6px, #3f3f4a 12px) !important;
+        }
+        .mini-played-card.card-back * { display: none !important; }
+
+        .card-spotlight { transform: scale(1.35) translateY(-8px); box-shadow: 0 0 25px #ffd166 !important; z-index: 50; }
+
+        #popup-banner {
+            position: absolute; top: 45px; left: 50%; transform: translateX(-50%) scale(0.5);
+            font-size: 24px; font-weight: bold; color: #ffd166; background: rgba(0, 0, 0, 0.85);
+            border: 3px solid #d4af37; padding: 10px 30px; border-radius: 8px; z-index: 60;
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.6); transition: all 0.4s ease; opacity: 0; pointer-events: none;
+        }
+        #popup-banner.show { opacity: 1; transform: translateX(-50%) scale(1); }
+
+        .bottom-area {
+            height: 170px; background: #141419; border-top: 2px solid #d4af37;
+            display: flex; flex-direction: column; padding: 10px 30px; justify-content: center; gap: 10px; z-index: 2;
+        }
+        
+        .card {
+            width: 88px; height: 112px; background: #2a2a35; border: 2px solid #666;
+            border-radius: 6px; display: flex; flex-direction: column; align-items: center;
+            justify-content: space-between; padding: 4px; cursor: pointer; font-size: 10px; text-align: center;
+            transition: all 0.15s; position: relative; flex-shrink: 0;
+        }
+        .card:hover:not(.disabled):not(.selected) { border-color: #d4af37; transform: translateY(-3px); }
+        .card.selected { opacity: 0.3; pointer-events: none; }
+        .card.disabled { opacity: 0.25; filter: grayscale(100%); cursor: not-allowed; background: #1a1a20; }
+        
+        .card-type-attack { border-color: #e63946; background: #351c21; }
+        .card-type-move { border-color: #457b9d; background: #1c2635; }
+        .card-type-support { border-color: #2a9d8f; background: #1c3530; }
+
+        .card-header-box { display: flex; flex-direction: column; align-items: center; width: 100%; }
+        .card-name {
+            font-size: 8.5px; font-weight: bold; width: 100%;
+            white-space: pre-wrap; word-break: keep-all; line-height: 10px;
+        }
+        .card-effect-desc {
+            font-size: 6.5px; color: #00f5d4; font-weight: normal; margin-top: 1px; line-height: 8px;
+        }
+        
+        .card-bottom-box {
+            width: 100%; background: #1a1a20; border: 1px solid #555; border-radius: 3px;
+            display: flex; justify-content: space-between; align-items: center; padding: 2px 3px; height: 38px;
+        }
+        .card-stats { display: flex; flex-direction: column; font-size: 7.5px; text-align: left; line-height: 10px; color: #ffbe0b; font-weight: bold; }
+        
+        .card-grid-33 {
+            display: grid; grid-template-columns: repeat(3, 9px); grid-template-rows: repeat(3, 9px);
+            gap: 1px; background: #000; padding: 1px; border: 1px solid #444;
+        }
+        .c-cell {
+            background: #222; border-radius: 1px; display: flex; align-items: center;
+            justify-content: center; font-size: 8px; line-height: 8px; color: #2ecc71; font-weight: bold;
+        }
+        .c-cell.active { background: #e63946; }
+        .c-cell.support-active { background: #2ecc71; }
+
+        .action-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .slots-container { display: flex; gap: 12px; }
+        .slot {
+            width: 88px; height: 112px; border: 2px dashed #555; border-radius: 6px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.3); cursor: pointer; position: relative; font-size: 11px; color: #777;
+        }
+        .slot.filled { border-style: solid; border-color: #d4af37; background: #2a2a35; color: #fff; padding: 0; }
+        
+        .controls { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+        .btn {
+            padding: 9px 24px; font-size: 13px; font-weight: bold; border: none;
+            cursor: pointer; border-radius: 4px; transition: 0.2s;
+        }
+        .btn-battle { background: #555; color: #888; cursor: not-allowed; }
+        .btn-battle.active { background: #2a9d8f; color: #fff; cursor: pointer; box-shadow: 0 0 8px #2a9d8f; }
+        .btn-battle:disabled { background: #333 !important; color: #666 !important; cursor: not-allowed !important; box-shadow: none !important; }
+        .btn-clear { background: #e63946; color: #fff; }
+        .btn-next-round { background: #457b9d; color: #fff; display: none; box-shadow: 0 0 8px #457b9d; }
+
+        .minimap-container { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 300px; }
+        .minimap-title { font-size: 10px; color: #d4af37; font-weight: bold; }
+        .minimap-grid {
+            display: grid; grid-template-columns: repeat(4, 32px); grid-template-rows: repeat(4, 25px);
+            gap: 2px; background: #000; padding: 4px; border: 2px solid #666; border-radius: 4px;
+        }
+        .mini-cell { background: #222; border-radius: 2px; }
+        .mini-cell.p1 { background: #457b9d; border: 1px solid #a8dadc; }
+        .mini-cell.ai { background: #e63946; border: 1px solid #ffb703; }
+
+        .overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.95); z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 12px; padding: 20px; text-align: center;
+        }
+        #reset-modal { z-index: 200 !important; }
+
+        .hidden { display: none !important; }
+        
+        .option-grid {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+            max-width: 820px; max-height: 380px; overflow-y: auto; padding: 5px;
+        }
+        .char-card, .reward-card {
+            width: 120px; height: 135px; background: #252530; border: 2px solid #d4af37;
+            border-radius: 6px; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; cursor: pointer; padding: 6px; gap: 4px; transition: transform 0.2s, filter 0.2s, opacity 0.2s;
+        }
+        .char-card:hover, .reward-card:hover { transform: scale(1.05); background: #353545; }
+        .char-card.locked { opacity: 0.3; border-color: #555; pointer-events: none; filter: grayscale(100%); }
+
+        .reward-card.unselected-shaded {
+            filter: grayscale(100%) brightness(40%);
+            opacity: 0.5;
+            border-color: #555;
+        }
+
+        .modal-box {
+            background: #252530; border: 2px solid #d4af37; border-radius: 8px;
+            padding: 20px 30px; display: flex; flex-direction: column; gap: 15px; align-items: center;
+        }
+        .modal-btns { display: flex; gap: 15px; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="popup-banner">ROUND 1</div>
+
+    <div class="overlay hidden" id="reset-modal">
+        <div class="modal-box">
+            <h3 style="color:#e63946;">해금된 캐릭터를 리셋하시겠습니까?</h3>
+            <p style="font-size:12px; color:#aaa;">모든 잠금 해제 캐릭터 및 추가 해금 카드가 초기화됩니다.</p>
+            <div class="modal-btns">
+                <button class="btn btn-clear" onclick="confirmReset(true)">예</button>
+                <button class="btn btn-battle active" onclick="confirmReset(false)">아니오</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay hidden" id="discard-modal">
+        <h3 style="color:#d4af37;">덱 한도 초과 (15장)! 버릴 카드를 1장 선택하세요</h3>
+        <div class="option-grid" id="discard-grid"></div>
+    </div>
+
+    <div class="overlay hidden" id="deck-build-screen">
+        <h3 style="color:#d4af37;" id="deck-build-title">시작 덱 10장 구성</h3>
+        <p style="font-size:11px; color:#aaa;" id="deck-build-count">선택됨: 0 / 10</p>
+        <div class="option-grid" id="deck-build-grid"></div>
+        <button class="btn btn-battle" id="deck-build-confirm-btn" onclick="confirmStartDeck()">덱 확정 후 시작</button>
+    </div>
+
+    <div class="overlay" id="char-select-screen">
+        <h2 style="color: #d4af37;">플레이할 캐릭터를 선택하세요</h2>
+        <p style="font-size:12px; color:#aaa;">Stage 5까지 승리하면 상대 캐릭터들이 순차적으로 해금됩니다.</p>
+        <div class="option-grid" id="char-grid"></div>
+        <button class="btn btn-clear" style="margin-top:10px;" onclick="openResetModal()">RESET</button>
+    </div>
+
+    <div class="top-bar">
+        <div class="status-box">
+            <div class="avatar" id="p1-avatar"></div>
+            <div class="bars">
+                <div class="bar-container">
+                    <div class="hp-fill" id="p1-hp-bar"></div>
+                    <div class="bar-text" id="p1-hp-text">HP 100 / 100</div>
+                </div>
+                <div class="bar-container">
+                    <div class="en-fill" id="p1-en-bar"></div>
+                    <div class="bar-text" id="p1-en-text">EN 100 / 100</div>
+                </div>
+            </div>
+        </div>
+        <div class="round-indicator" id="round-indicator">
+            STAGE 1 - ROUND 1
+            <button class="bgm-btn" id="bgm-toggle-btn" onclick="toggleBGM()">🔊</button>
+        </div>
+        <div class="status-box">
+            <div class="bars" style="align-items: flex-end;">
+                <div class="bar-container">
+                    <div class="hp-fill" id="ai-hp-bar"></div>
+                    <div class="bar-text" id="ai-hp-text">HP 100 / 100</div>
+                </div>
+                <div class="bar-container">
+                    <div class="en-fill" id="ai-en-bar"></div>
+                    <div class="bar-text" id="ai-en-text">EN 100 / 100</div>
+                </div>
+            </div>
+            <div class="avatar" id="ai-avatar"></div>
+        </div>
+    </div>
+
+    <div class="center-area" id="center-area">
+        <div id="battle-log">카드를 3장 선택하고 Battle 버튼을 누르세요.</div>
+        
+        <div class="select-deck-grid" id="select-deck-grid"></div>
+        <div class="map-grid-main hidden" id="main-map"></div>
+    </div>
+
+    <div class="bottom-area">
+        <div class="action-row">
+            <div id="bottom-left-area" style="display:flex; align-items:center;">
+                <div class="slots-container" id="p1-slots-wrapper">
+                    <div class="slot" id="slot-0" onclick="unselectCard(0)">01</div>
+                    <div class="slot" id="slot-1" onclick="unselectCard(1)">02</div>
+                    <div class="slot" id="slot-2" onclick="unselectCard(2)">03</div>
+                </div>
+                <div class="played-cards-area hidden" id="p1-played-area"></div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-battle" id="battle-btn" onclick="startBattle()">BATTLE</button>
+                <button class="btn btn-clear" id="clear-btn" onclick="clearSlots()">CLEAR</button>
+                <button class="btn btn-next-round" id="next-round-btn" onclick="proceedToNextRound()">NEXT ROUND</button>
+            </div>
+
+            <div id="bottom-right-area" style="display:flex; align-items:center;">
+                <div class="minimap-container" id="mini-map-container">
+                    <div class="minimap-title">MAP (4x4)</div>
+                    <div class="minimap-grid" id="mini-map"></div>
+                </div>
+                <div class="played-cards-area hidden" id="ai-played-area"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay hidden" id="reward-screen">
+        <h2 style="color: #d4af37;" id="reward-title">Stage 클리어! 덱에 추가할 카드를 1장 고르세요</h2>
+        <div class="option-grid" id="reward-grid"></div>
+    </div>
+
+    <div class="overlay hidden" id="result-screen">
+        <h1 id="result-title" style="color:#d4af37;">FINAL CLEAR!</h1>
+        <p id="result-desc">모든 5개 스테이지를 정복했습니다!</p>
+        <button class="btn btn-battle active" onclick="location.reload()">처음으로</button>
+    </div>
+</div>
+
+<script>
+    let audioCtx = null;
+    let isBgmPlaying = false;
+
+    const normalBgmPlaylist = [
+        'OPG_bgm_01.mp3',
+        'OPG_bgm_02.mp3',
+        'OPG_bgm_03.mp3',
+        'OPG_bgm_05.mp3',
+        'OPG_bgm_06.mp3'
+    ];
+    let currentBgmIndex = 0;
+    let bgmAudio = new Audio();
+
+    bgmAudio.addEventListener('ended', function() {
+        if (isBgmPlaying) {
+            if (gameState.stage === 5) {
+                bgmAudio.src = 'OPG_bgm_04.mp3';
+                bgmAudio.play().catch(e => console.log('BGM play error:', e));
+            } else {
+                currentBgmIndex = (currentBgmIndex + 1) % normalBgmPlaylist.length;
+                playCurrentBgm();
+            }
+        }
+    });
+
+    function playCurrentBgm() {
+        if (gameState.stage === 5) {
+            if (bgmAudio.src.indexOf('OPG_bgm_04.mp3') === -1) {
+                bgmAudio.src = 'OPG_bgm_04.mp3';
+                bgmAudio.play().catch(e => console.log('BGM Autoplay prevented:', e));
+            }
+        } else {
+            if (!bgmAudio.src || bgmAudio.paused || bgmAudio.src.indexOf('OPG_bgm_04.mp3') !== -1) {
+                bgmAudio.src = normalBgmPlaylist[currentBgmIndex];
+                bgmAudio.play().catch(e => console.log('BGM Autoplay prevented:', e));
+            }
+        }
+    }
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        if (!isBgmPlaying) {
+            isBgmPlaying = true;
+            const btn = document.getElementById('bgm-toggle-btn');
+            if (btn) btn.innerText = '🔊';
+            playCurrentBgm();
+        }
+    }
+
+    function toggleBGM() {
+        initAudio();
+        const btn = document.getElementById('bgm-toggle-btn');
+        
+        if (isBgmPlaying && !bgmAudio.paused) {
+            isBgmPlaying = false;
+            btn.innerText = '🔇';
+            bgmAudio.pause();
+        } else {
+            isBgmPlaying = true;
+            btn.innerText = '🔊';
+            playCurrentBgm();
+        }
+    }
+
+    function playSound(type) {
+        try {
+            initAudio();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            if (type === 'move') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.12);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } else if (type === 'attack') {
+                const track = Math.floor(Math.random() * 5);
+                const baseFreqs = [400, 520, 650, 300, 800];
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(baseFreqs[track], now);
+                osc.frequency.exponentialRampToValueAtTime(80, now + 0.2);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'hit') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } else if (type === 'recover') {
+                const freqs = [523.25, 659.25, 783.99, 1046.50];
+                freqs.forEach((f, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(f, now + idx * 0.06);
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.06);
+                    gain.gain.linearRampToValueAtTime(0.01, now + idx * 0.06 + 0.15);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.06);
+                    osc.stop(now + idx * 0.06 + 0.15);
+                });
+            }
+        } catch (e) {}
+    }
+
+    const CHARACTERS = [
+        { id: 0, name: "루피", icon: `<img src="Source) Luffy Stnd.gif" alt="루피">` },
+        { id: 1, name: "조로", icon: `<div class="zoro-anim"></div>` },
+        { id: 2, name: "크로커다일", icon: "🐊" },
+        { id: 3, name: "도플라밍고", icon: `<img src="DF_stnd.gif" alt="도플라밍고">` },
+        { id: 4, name: "유스타스 키드", icon: `<img src="Kid_Std_Trans.gif" alt="유스타스 키드">` },
+        { id: 5, name: "트라팔가 로", icon: `<img src="Law_Stnd_Trans.gif" alt="트라팔가 로">` },
+        { id: 6, name: "키자루", icon: "✨" },
+        { id: 7, name: "카이도", icon: `<div class="kaido-anim"></div>` },
+        { id: 8, name: "검은수염", icon: `<div class="bb-anim"></div>` },
+        { id: 9, name: "샹크스", icon: `<img src="shgif_trans2.gif" alt="샹크스">` }
+    ];
+
+    const AI_PERSONALITIES = {
+        aggressive: { name: "공격 우선형", title: "처치 집착형" },
+        survival: { name: "생존 우선형", title: "신중한 전술가" },
+        balanced: { name: "균형 전략형", title: "상황 대응형" },
+        tricky: { name: "변칙 전술형", title: "예측 불가형" }
+    };
+    const AI_PERSONALITY_KEYS = Object.keys(AI_PERSONALITIES);
+
+    function makeBaseMoveCards(prefix) {
+        return [
+            { id: `${prefix}_m_l`, name: "왼쪽 이동", type: "move", dir: "LEFT", dist: 1, dm: 0, costEN: 0, costHP: 0, pattern: [] },
+            { id: `${prefix}_m_r`, name: "오른쪽 이동", type: "move", dir: "RIGHT", dist: 1, dm: 0, costEN: 0, costHP: 0, pattern: [] },
+            { id: `${prefix}_m_u`, name: "위쪽 이동", type: "move", dir: "UP", dist: 1, dm: 0, costEN: 0, costHP: 0, pattern: [] },
+            { id: `${prefix}_m_d`, name: "아래쪽 이동", type: "move", dir: "DOWN", dist: 1, dm: 0, costEN: 0, costHP: 0, pattern: [] }
+        ];
+    }
+
+    function makeMoveCard(prefix, suffix, name, dir, dist = 1) {
+        return { id: `${prefix}_${suffix}`, name, type: "move", dir, dist, dm: 0, costEN: 0, costHP: 0, pattern: [] };
+    }
+
+    const CHARACTER_CARDS = {
+        0: {
+            base: [
+                ...makeBaseMoveCards('l'),
+                { id: "l_a_1", name: "고무고무 바주카", type: "attack", pattern: [4,5,6], dm: 20, costEN: 15, costHP: 0 },
+                { id: "l_a_2", name: "고무고무 총난타", type: "attack", pattern: [1,2,3,4,5,6,7,8,9], dm: 15, costEN: 30, costHP: 0 },
+                { id: "l_a_3", name: "기어2 제트피스톨", type: "attack", pattern: [2,4,5,6,8], dm: 25, costEN: 30, costHP: 0 },
+                { id: "l_a_4", name: "기어3 앨리펀트건", type: "attack", pattern: [1,3,5,7,9], dm: 30, costEN: 35, costHP: 0 },
+                { id: "l_s_1", name: "EN 회복", type: "support", effect: "EN_UP", desc: "(효과: 자신의 EN 20 회복)", val: 20, dm: 0, costEN: 0, costHP: 0, pattern: [] },
+                { id: "l_s_2", name: "HP 회복", type: "support", effect: "HP_UP", desc: "(효과: 자신의 HP 15 회복)", val: 15, dm: 0, costEN: 25, costHP: 0, pattern: [] }
+            ],
+            extra: [
+                makeMoveCard('l', 'ex_m1', '위로 두칸 이동', 'UP', 2),
+                makeMoveCard('l', 'ex_m2', '아래로 두칸 이동', 'DOWN', 2),
+                { id: "l_ex_a1", name: "기어4 콩건", type: "attack", pattern: [2,4,6,8], dm: 30, costEN: 25, costHP: 0 },
+                { id: "l_ex_a2", name: "기어4 콩게틀링", type: "attack", pattern: [1,2,3,4,6,7,8,9], dm: 30, costEN: 60, costHP: 0 },
+                { id: "l_ex_a3", name: "기어5 던스탬프", type: "attack", pattern: [1,2,3,7,8,9], dm: 50, costEN: 35, costHP: 15 },
+                { id: "l_ex_a4", name: "기어5 던로켓", type: "attack", pattern: [1,4,7,3,6,9], dm: 50, costEN: 35, costHP: 15 }
+            ]
+        },
+        1: {
+            base: [
+                ...makeBaseMoveCards('z'),
+                { id: "z_a_1", name: "사자의 노래", type: "attack", pattern: [4,5,6], dm: 15, costEN: 10, costHP: 0 },
+                { id: "z_a_2", name: "극락안양 나생문", type: "attack", pattern: [1,2,3,7,8,9], dm: 25, costEN: 30, costHP: 0 },
+                { id: "z_a_3", name: "호호파 범사냥", type: "attack", pattern: [2,4,5,6,8], dm: 30, costEN: 35, costHP: 0 },
+                { id: "z_a_4", name: "연옥 도깨비참수", type: "attack", pattern: [1,3,5,7,9], dm: 30, costEN: 35, costHP: 0 },
+                { id: "z_s_1", name: "방어", type: "support", effect: "GUARD", desc: "(효과: 상대의 공격 20 방어)", val: 20, dm: 0, costEN: 0, costHP: 0, pattern: [] },
+                { id: "z_s_2", name: "HP 회복", type: "support", effect: "HP_UP", desc: "(효과: 자신의 HP 15 회복)", val: 15, dm: 0, costEN: 25, costHP: 0, pattern: [] }
+            ],
+            extra: [
+                makeMoveCard('z', 'ex_m1', '오른쪽 두칸 이동', 'RIGHT', 2),
+                makeMoveCard('z', 'ex_m2', '왼쪽 두칸 이동', 'LEFT', 2),
+                { id: "z_ex_a1", name: "염왕 비룡시극", type: "attack", pattern: [1,4,6,9], dm: 60, costEN: 40, costHP: 0 },
+                { id: "z_ex_a2", name: "아수라 마구섬", type: "attack", pattern: [1,2,3,4,6,7,8,9], dm: 30, costEN: 30, costHP: 10 },
+                { id: "z_ex_a3", name: "일대삼천 대천세계", type: "attack", pattern: [1,2,3,4,5,6], dm: 40, costEN: 50, costHP: 0 },
+                { id: "z_ex_s1", name: "정신집중", type: "support", effect: "EN_UP", desc: "(효과: 자신의 EN 50 회복)", val: 50, dm: 0, costEN: 0, costHP: 20, pattern: [] }
+            ]
+        },
+        2: {
+            base: [
+                ...makeBaseMoveCards('c'),
+                { id: "c_a_1", name: "데저트 스파다", type: "attack", pattern: [4,5,6], dm: 40, costEN: 35, costHP: 0 },
+                { id: "c_a_2", name: "데저트 지라솔레", type: "attack", pattern: [1,2,3,4,6,7,8,9], effect: "DRAIN_EN_DELAY", desc: "(효과: 적중 시 상대 EN 30 감소 / Step 종료 후 발동)", val: 30, dm: 0, costEN: 15, costHP: 0 },
+                { id: "c_a_3", name: "초승달 사구", type: "attack", pattern: [2,4,6,8], dm: 25, costEN: 20, costHP: 0 },
+                { id: "c_a_4", name: "모래폭풍", type: "attack", pattern: [1,2,3,4,6,7,8,9], dm: 15, costEN: 30, costHP: 0 },
+                { id: "c_s_1", name: "EN 회복", type: "support", effect: "EN_UP", desc: "(효과: 자신의 EN 20 회복)", val: 20, dm: 0, costEN: 0, costHP: 0, pattern: [] },
+                { id: "c_s_2", name: "HP 회복", type: "support", effect: "HP_UP", desc: "(효과: 자신의 HP 15 회복)", val: 15, dm: 0, costEN: 25, costHP: 0, pattern: [] }
+            ],
+            extra: [
+                makeMoveCard('c', 'ex_m1', '오른쪽 두칸 이동', 'RIGHT', 2),
+                makeMoveCard('c', 'ex_m2', '왼쪽 두칸 이동', 'LEFT', 2),
+                makeMoveCard('c', 'ex_m3', '위로 두칸 이동', 'UP', 2),
+                makeMoveCard('c', 'ex_m4', '아래로 두칸 이동', 'DOWN', 2),
+                { id: "c_ex_a1", name: "그랜드 세코", type: "attack", pattern: [2,3,4,5,6,7,8], dm: 25, costEN: 45, costHP: 0 },
+                { id: "c_ex_a2", name: "사막의 대검", type: "attack", pattern: [4,5], dm: 60, costEN: 20, costHP: 0 }
+            ]
+        },
+        3: {
+            base: [
+                ...makeBaseMoveCards('d'),
+                { id: "d_a_1", name: "총탄실", type: "attack", pattern: [4,5,6], dm: 15, costEN: 10, costHP: 0 },
+                { id: "d_a_2", name: "새장", type: "attack", pattern: [1,2,3,4,5,6,7,8,9], dm: 25, costEN: 50, costHP: 0 },
+                { id: "d_a_3", name: "항뢰무사", type: "attack", pattern: [1,2,3,4,6], dm: 25, costEN: 25, costHP: 0 },
+                { id: "d_a_4", name: "실톱", type: "attack", pattern: [4,6,7,8,9], dm: 25, costEN: 25, costHP: 0 },
+                { id: "d_s_1", name: "EN 회복", type: "support", effect: "EN_UP", desc: "(효과: 자신의 EN 20 회복)", val: 20, dm: 0, costEN: 0, costHP: 0, pattern: [] },
+                { id: "d_s_2", name: "HP 회복", type: "support", effect: "HP_UP", desc: "(효과: 자신의 HP 15 회복)", val: 15, dm: 0, costEN: 25, costHP: 0, pattern: [] }
+            ],
+            extra: [
+                makeMoveCard('d', 'ex_m1', '오른쪽 두칸 이동', 'RIGHT', 2),
+                makeMoveCard('d', 'ex_m2', '왼쪽 두칸 이동', 'LEFT', 2),
+                { id: "d_ex_a1", name: "꼭두각시 조정", type: "attack", pattern: [1,2,3,4,6,7,8,9], dm: 10, costEN: 15, costHP: 0 },
+                { id: "d_ex_s1", name: "각성", type: "support", effect: "EN_UP", desc: "(효과: 자신의 EN 50 회복)", val: 50, dm: 0, costEN: 0, costHP: 20, pattern: [] },
+                { id: "d_ex_s2", name: "수복작업", type: "support", effect: "HP_UP", desc: "(효과: 자신의 HP 30 회복)", val: 30, dm: 0, costEN: 60, costHP: 0, pattern: [] },
+                { id: "d_ex_s3", name: "거미집 그물", type: "support", effect: "GUARD", desc: "(효과: 상대의 공격 30 방어)", val: 30, dm: 0, costEN: 15, costHP: 0, pattern: [] }
+            ]
+        },
+        4: {
+            base: [
+                ...makeBaseMoveCards('k'),
+                { id: "k_a_1", name: "리펠", type: "attack", pattern: [4,6], dm: 70, costEN: 30, costHP: 0 },
+                { id: "k_a_2", name: "펑크 로튼", type: "attack", pattern: [1,2,3,7,8,9], dm: 20, costEN: 20, costHP: 0 },
+                { id: "k_a_3", name: "펑크 깁슨", type: "attack", pattern: [2,4,5,6,8], dm: 25, costEN: 25, costHP: 0 },
+                { id: "k_a_4", name: "펑크 피스톨즈", type: "attack", pattern: [1,4,7,3,6,9], dm: 20, costEN: 20, costHP: 0 },
+                { id: "k_s_1", name: "EN 회복", type: "support", effect: "EN_UP", desc: "(효과: 자신의 EN 20 회복)", val: 20, dm: 0, costEN: 0, costHP: 0, pattern: [] },
+                { id: "k_s_2", name: "HP 회복", type: "support", effect: "HP_UP", desc: "(효과: 자신의 HP 15 회복)", val: 15, dm: 0, costEN: 25, costHP: 0, pattern: [] }
+            ],
+            extra: [
+                makeMoveCard('k', 'ex_m1', '오른쪽 두칸 이동', 'RIGHT', 2),
+                makeMoveCard('k', 'ex_m2', '왼쪽 두칸 이동', 'LEFT', 2),
+                { id: "k_ex_a1", name: "전자포", type: "attack", pattern: [1,2,3,5,7,8,9], dm: 40, costEN: 70, costHP: 0 },
+                { id: "k_ex_a2", name: "펑크 크래시", type: "attack", pattern: [1,2,3,4,6,7,8,9], dm: 15, costEN: 25, costHP: 0 },
+                { id: "k_ex_s1", name: "각성", type: "support", effect: "EN_UP", desc: "(효과: 자신의 EN 50 회복)", val: 50, dm: 0, costEN: 0, costHP: 20, pattern: [] },
+                { id: "k_ex_s2", name: "자기력", type: "support", effect: "GUARD", desc: "(효과: 상대의 공격 30 방어)", val: 30, dm: 0, costEN: 15, costHP: 0, pattern: [] }
+            ]
+        },
+        5: {
+            base: [
+                ...makeBaseMoveCards('r'),
+                { id: "r_a_1", name: "룸", type: "attack", pattern: [1,2,3,4,6,7,8,9], dm: 10, costEN: 25, costHP: 0 },
+                { id: "r_a_2", name: "엠퓨테이트", type: "attack", pattern: [1,3,7,9], dm: 25, costEN: 25, costHP: 0 },
+                { id: "r_a_3", name: "택트", type: "attack", pattern: [4,6], dm: 45, costEN: 20, costHP: 0 },
+                { id: "r_a_4", name: "인젝션 샷", type: "attack", pattern: [2,8], dm: 45, costEN: 20, costHP: 0 },
+                { id: "r_s_1", name: "EN 회복", type: "support", effect: "EN_UP", desc: "(효과: 자신의 EN 25 회복)", val: 25, dm: 0, costEN: 0, costHP: 0, pattern: [] },
+                { id: "r_s_2", name: "샘블즈", type: "support", effect: "MOVE_TO_ENEMY", desc: "(효과: 상대 위치로 이동 / EN 35 소모)", dm: 0, costEN: 35, costHP: 0, pattern: [] }
+            ],
+            extra: [
+                makeMoveCard('r', 'ex_m1', '오른쪽 두칸 이동', 'RIGHT', 2),
+                makeMoveCard('r', 'ex_m2', '왼쪽 두칸 이동', 'LEFT', 2),
+                makeMoveCard('r', 'ex_m3', '위쪽 두칸 이동', 'UP', 2),
+                makeMoveCard('r', 'ex_m4', '아래로 두칸 이동', 'DOWN', 2),
+                { id: "r_ex_s1", name: "HP 회복", type: "support", effect: "HP_UP", desc: "(효과: 자신의 HP 20 회복)", val: 20, dm: 0, costEN: 25, costHP: 0, pattern: [] },
+                { id: "r_ex_a1", name: "펑크처 빌레", type: "attack", pattern: [5], dm: 60, costEN: 40, costHP: 0 }
+            ]
+        },
+        6: {
+            base: [
+                ...makeBaseMoveCards('kz'),
+                makeMoveCard('kz', 'm_r2', '오른쪽 두칸 이동', 'RIGHT', 2),
+                makeMoveCard('kz', 'm_l2', '왼쪽 두칸 이동', 'LEFT', 2),
+                { id: "kz_a_1", name: "천운총검", type: "attack", pattern: [2,4,5,6,8], dm: 30, costEN: 35, costHP: 0 },
+                { id: "kz_a_2", name: "팔지경", type: "attack", pattern: [1,3,5,7,9], dm: 30, costEN: 35, costHP: 0 },
+                { id: "kz_a_3", name: "팔척경곡옥", type: "attack", pattern: [1,2,3,4,6,7,8,9], dm: 20, costEN: 40, costHP: 0 },
+                { id: "kz_a_4", name: "천암호", type: "attack", pattern: [4,5,6], dm: 40, costEN: 30, costHP: 0 }
+            ],
+            extra: [
+                { id: "kz_ex_s1", name: "HP 회복", type: "support", effect: "HP_UP", desc: "(효과: 자신의 HP 15 회복)", val: 15, dm: 0, costEN: 25, costHP: 0, pattern: [] },
+                { id: "kz_ex_s2", name: "EN 회복", type: "support", effect: "EN_UP", desc: "(효과: 자신의 EN 20 회복)", val: 20, dm: 0, costEN: 0, costHP: 0, pattern: [] },
+                { id: "kz_ex_s3", name: "방어", type: "support", effect: "GUARD", desc: "(효과: 상대의 공격 20 방어)", val: 20, dm: 0, costEN: 0, costHP: 0, pattern: [] },
+                { id: "kz_ex_a1", name: "레이저 차기", type: "attack", pattern: [1,4,7,3,6,9], dm: 15, costEN: 25, costHP: 0 },
+                { id: "kz_ex_a2", name: "츠무가리", type: "move_attack", moveDir: "UP", desc: "(효과: 위쪽 1칸 이동 후 공격)", pattern: [1,2,3], dm: 20, costEN: 25, costHP: 0 },
+                { id: "kz_ex_a3", name: "쿠사나기", type: "move_attack", moveDir: "DOWN", desc: "(효과: 아래쪽 1칸 이동 후 공격)", pattern: [7,8,9], dm: 20, costEN: 25, costHP: 0 }
+            ]
+        },
+        7: {
+            base: [
+                ...makeBaseMoveCards('kd'),
+                { id: "kd_a_1", name: "금강살", type: "attack", pattern: [2,4,6,8], dm: 30, costEN: 30, costHP: 0 },
+                { id: "kd_a_2", name: "용오름", type: "attack", pattern: [1,3,7,9], dm: 30, costEN: 30, costHP: 0 },
+                { id: "kd_a_3", name: "뇌명팔괘", type: "attack", pattern: [4,5,6], dm: 50, costEN: 40, costHP: 0 },
+                { id: "kd_a_4", name: "주룡팔괘", type: "attack", pattern: [1,2,3,4,5,6,7,8,9], dm: 25, costEN: 20, costHP: 15 },
+                { id: "kd_s_1", name: "EN 회복", type: "support", effect: "EN_UP", desc: "(효과: 자신의 EN 45 회복)", val: 45, dm: 0, costEN: 0, costHP: 20, pattern: [] },
+                { id: "kd_s_2", name: "HP 회복", type: "support", effect: "HP_UP", desc: "(효과: 자신의 HP 25 회복)", val: 25, dm: 0, costEN: 35, costHP: 0, pattern: [] }
+            ],
+            extra: [
+                makeMoveCard('kd', 'ex_m1', '오른쪽 두칸 이동', 'RIGHT', 2),
+                makeMoveCard('kd', 'ex_m2', '왼쪽 두칸 이동', 'LEFT', 2),
+                makeMoveCard('kd', 'ex_m3', '위로 두칸 이동', 'UP', 2),
+                makeMoveCard('kd', 'ex_m4', '아래로 두칸 이동', 'DOWN', 2),
+                { id: "kd_ex_a1", name: "라그나라크", type: "attack", pattern: [2,4,6,8], dm: 40, costEN: 35, costHP: 0 },
+                { id: "kd_ex_a2", name: "보로브레스", type: "attack", pattern: [1,4,7,3,6,9,5], dm: 50, costEN: 60, costHP: 0 }
+            ]
+        },
+        8: {
+            base: [
+                ...makeBaseMoveCards('bb'),
+                { id: "bb_a_1", name: "검은 소용돌이", type: "attack", pattern: [4,5,6], dm: 60, costEN: 10, costHP: 20 },
+                { id: "bb_a_2", name: "해방", type: "attack", pattern: [1,2,3,4,5,6,7,8,9], dm: 25, costEN: 10, costHP: 10 },
+                { id: "bb_a_3", name: "암흑성", type: "attack", pattern: [2,4,5,6,8], dm: 35, costEN: 0, costHP: 15 },
+                { id: "bb_a_4", name: "블랙홀", type: "attack", pattern: [4,5,6,7,8,9], effect: "DRAIN_EN", val: 40, dm: 0, costEN: 0, costHP: 15 },
+                { id: "bb_s_1", name: "EN 회복", type: "support", effect: "EN_UP", desc: "(효과: 자신의 EN 20 회복)", val: 20, dm: 0, costEN: 0, costHP: 0, pattern: [] },
+                { id: "bb_s_2", name: "HP 회복", type: "support", effect: "HP_UP", desc: "(효과: 자신의 HP 40 회복)", val: 40, dm: 0, costEN: 55, costHP: 0, pattern: [] }
+            ],
+            extra: [
+                { id: "bb_ex_s1", name: "흡수", type: "support", effect: "HP_UP", desc: "(효과: 자신의 HP 15 회복)", val: 15, dm: 0, costEN: 10, costHP: 0, pattern: [] },
+                { id: "bb_ex_s2", name: "난동", type: "move", dir: "RANDOM_3", desc: "(효과: 랜덤 방향으로 1칸씩 3번 이동)", dist: 3, dm: 0, costEN: 0, costHP: 0, pattern: [] },
+                { id: "bb_ex_a1", name: "진파", type: "attack", pattern: [1,2,3,5,7,8,9], dm: 40, costEN: 10, costHP: 20 },
+                { id: "bb_ex_a2", name: "천지명동", type: "attack", pattern: [1,4,7,3,6,9], dm: 30, costEN: 0, costHP: 10 },
+                { id: "bb_ex_a3", name: "빅뱅", type: "attack", pattern: [1,3,7,9], dm: 40, costEN: 30, costHP: 0 },
+                { id: "bb_ex_a4", name: "어둠충격파", type: "attack", pattern: [1,2,3,7,8,9], dm: 60, costEN: 30, costHP: 20 }
+            ]
+        },
+        9: {
+            base: [
+                ...makeBaseMoveCards('s'),
+                { id: "s_a_1", name: "하늘 가르기", type: "attack", pattern: [1,2,3], dm: 30, costEN: 15, costHP: 0 },
+                { id: "s_a_2", name: "패왕색 패기", type: "attack", pattern: [1,2,3,4,5,6,7,8,9], dm: 25, costEN: 55, costHP: 0 },
+                { id: "s_a_3", name: "바다 가르기", type: "attack", pattern: [7,8,9], dm: 30, costEN: 15, costHP: 0 },
+                { id: "s_s_1", name: "EN 회복", type: "support", effect: "EN_UP", desc: "(효과: 자신의 EN 20 회복)", val: 20, dm: 0, costEN: 0, costHP: 0, pattern: [] },
+                { id: "s_s_2", name: "HP 회복", type: "support", effect: "HP_UP", desc: "(효과: 자신의 HP 15 회복)", val: 15, dm: 0, costEN: 25, costHP: 0, pattern: [] },
+                { id: "s_s_3", name: "방어", type: "support", effect: "GUARD", desc: "(효과: 상대의 공격 50 방어)", val: 50, dm: 0, costEN: 10, costHP: 0, pattern: [] }
+            ],
+            extra: [
+                makeMoveCard('s', 'ex_m1', '위로 두칸 이동', 'UP', 2),
+                makeMoveCard('s', 'ex_m2', '아래로 두칸 이동', 'DOWN', 2),
+                { id: "s_ex_s1", name: "정신집중", type: "support", effect: "EN_UP", desc: "(효과: 자신의 EN 40 회복)", val: 40, dm: 0, costEN: 0, costHP: 10, pattern: [] },
+                { id: "s_ex_a1", name: "정점의 일격", type: "attack", pattern: [1,4,7,8,9], dm: 30, costEN: 30, costHP: 0 },
+                { id: "s_ex_a2", name: "그리폰의 상격", type: "attack", pattern: [1,2,3,6,9], dm: 30, costEN: 30, costHP: 0 },
+                { id: "s_ex_a3", name: "카무사리", type: "attack", pattern: [4,5,6], dm: 65, costEN: 50, costHP: 0 }
+            ]
+        }
+    };
+
+    let unlockedCharIds = [0];
+    let unlockedCardsByChar = {};
+
+    function loadSavedData() {
+        try {
+            const savedChars = localStorage.getItem('unlocked_chars');
+            if (savedChars) unlockedCharIds = JSON.parse(savedChars);
+            const savedCards = localStorage.getItem('unlocked_cards');
+            if (savedCards) unlockedCardsByChar = JSON.parse(savedCards);
+        } catch (e) {}
+        if (!unlockedCharIds.includes(0)) unlockedCharIds.push(0);
+
+        Object.keys(unlockedCardsByChar).forEach(cId => {
+            const pool = [
+                ...(CHARACTER_CARDS[cId]?.base || []),
+                ...(CHARACTER_CARDS[cId]?.extra || [])
+            ];
+            unlockedCardsByChar[cId] = unlockedCardsByChar[cId].map(savedCard => {
+                const latestCard = pool.find(c => c.id === savedCard.id);
+                return latestCard ? { ...latestCard } : savedCard;
+            });
+        });
+        saveAllData();
+    }
+
+    function saveAllData() {
+        try {
+            localStorage.setItem('unlocked_chars', JSON.stringify(unlockedCharIds));
+            localStorage.setItem('unlocked_cards', JSON.stringify(unlockedCardsByChar));
+        } catch (e) {}
+    }
+
+    loadSavedData();
+
+    let gameState = {
+        stage: 1,
+        maxStage: 5,
+        round: 1,
+        isBattlePhase: false,
+        playerChar: null,
+        aiChar: null,
+        aiPersonality: "balanced",
+        stageOpponents: [],
+        playerHP: 100,
+        playerEN: 100,
+        aiHP: 100,
+        aiEN: 100,
+        p1Pos: { x: 0, y: 3 },
+        aiPos: { x: 3, y: 0 },
+        p1Guard: 0,
+        aiGuard: 0,
+        playerDeck: [],
+        aiDeck: [],
+        selectedSlots: [null, null, null],
+        tempBuildingDeck: [],
+        pendingCardToAdd: null
+    };
+
+    function openResetModal() {
+        document.getElementById('reset-modal').classList.remove('hidden');
+    }
+
+    function confirmReset(isYes) {
+        document.getElementById('reset-modal').classList.add('hidden');
+        if (isYes) {
+            unlockedCharIds = [0];
+            unlockedCardsByChar = {};
+            saveAllData();
+            initCharSelect();
+        }
+    }
+
+    function initCharSelect() {
+        const grid = document.getElementById('char-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        
+        CHARACTERS.forEach(char => {
+            const isUnlocked = unlockedCharIds.includes(char.id);
+            const div = document.createElement('div');
+            div.className = `char-card ${!isUnlocked ? 'locked' : ''}`;
+            div.innerHTML = `
+                <div class="map-char-icon" style="width:40px; height:40px;">${char.icon}</div>
+                <div style="font-weight:bold; font-size:11px;">${char.name}</div>
+                <div style="font-size:9px; color:${isUnlocked ? '#2a9d8f' : '#777'}">${isUnlocked ? '선택 가능' : '잠김'}</div>
+            `;
+            if (isUnlocked) {
+                div.onclick = () => selectPlayerChar(char);
+            }
+            grid.appendChild(div);
+        });
+    }
+
+    function getRandomSample(pool, n) {
+        return [...pool].sort(() => Math.random() - 0.5).slice(0, n);
+    }
+
+    function selectPlayerChar(char) {
+        initAudio();
+        gameState.playerChar = char;
+        document.getElementById('p1-avatar').innerHTML = char.icon;
+        document.getElementById('char-select-screen').classList.add('hidden');
+
+        gameState.stageOpponents = getRandomSample(CHARACTERS.filter(c => c.id !== char.id), 5)
+            .sort((a, b) => a.id - b.id)
+            .map(c => ({ ...c, aiPersonality: AI_PERSONALITY_KEYS[Math.floor(Math.random() * AI_PERSONALITY_KEYS.length)] }));
+
+        const charId = char.id;
+        const availableUnlockedExtra = unlockedCardsByChar[charId] || [];
+
+        if (availableUnlockedExtra.length > 0) {
+            openDeckBuilder(charId);
+        } else {
+            const baseDeck = CHARACTER_CARDS[charId].base.map(c => ({ ...c }));
+            startNewGameWithDeck(baseDeck);
+        }
+    }
+
+    function openDeckBuilder(charId) {
+        const rawPool = [
+            ...CHARACTER_CARDS[charId].base,
+            ...(unlockedCardsByChar[charId] || [])
+        ];
+        
+        const allPool = [];
+        const seenIds = new Set();
+        rawPool.forEach(card => {
+            if (!seenIds.has(card.id)) {
+                seenIds.add(card.id);
+                allPool.push(card);
+            }
+        });
+
+        gameState.tempBuildingDeck = CHARACTER_CARDS[charId].base.map(c => ({ ...c }));
+        
+        const builderScreen = document.getElementById('deck-build-screen');
+        builderScreen.classList.remove('hidden');
+
+        renderDeckBuilderGrid(allPool);
+    }
+
+    function createOptionCardEl(card, { statusText = '', statusColor = '#888', extraClass = '', onClick = null } = {}) {
+        const div = document.createElement('div');
+        div.className = `reward-card card-type-${card.type} ${extraClass}`.trim();
+        div.innerHTML = `
+            ${renderCardInnerContent(card)}
+            <div style="font-size:8.5px; color:${statusColor}; margin-top:2px;">[${statusText}]</div>
+        `;
+        if (onClick) div.onclick = onClick;
+        return div;
+    }
+
+    function renderDeckBuilderGrid(allPool) {
+        const grid = document.getElementById('deck-build-grid');
+        const countEl = document.getElementById('deck-build-count');
+        const confirmBtn = document.getElementById('deck-build-confirm-btn');
+        grid.innerHTML = '';
+
+        countEl.innerText = `선택됨: ${gameState.tempBuildingDeck.length} / 10`;
+        confirmBtn.classList.toggle('active', gameState.tempBuildingDeck.length === 10);
+
+        allPool.forEach(card => {
+            const isSelected = gameState.tempBuildingDeck.some(c => c.id === card.id);
+            const el = createOptionCardEl(card, {
+                statusText: isSelected ? '선택됨' : '미선택',
+                statusColor: isSelected ? '#d4af37' : '#888',
+                extraClass: isSelected ? '' : 'unselected-shaded',
+                onClick: () => {
+                    if (isSelected) {
+                        gameState.tempBuildingDeck = gameState.tempBuildingDeck.filter(c => c.id !== card.id);
+                    } else if (gameState.tempBuildingDeck.length < 10) {
+                        gameState.tempBuildingDeck.push({ ...card });
+                    }
+                    renderDeckBuilderGrid(allPool);
+                }
+            });
+            grid.appendChild(el);
+        });
+    }
+
+    function confirmStartDeck() {
+        if (gameState.tempBuildingDeck.length !== 10) return;
+        document.getElementById('deck-build-screen').classList.add('hidden');
+        startNewGameWithDeck(gameState.tempBuildingDeck);
+    }
+
+    function startNewGameWithDeck(deck10) {
+        gameState.stage = 1;
+        gameState.playerDeck = deck10.map(c => ({ ...c }));
+        
+        buildAIDeckForCurrentStage();
+        showCardRewardScreen("Stage 1 시작 보너스! 덱에 추가할 카드를 1장 고르세요", () => startStage());
+    }
+
+    function buildAIDeckForCurrentStage() {
+        const aiChar = gameState.stageOpponents[gameState.stage - 1];
+        gameState.aiChar = aiChar;
+        gameState.aiPersonality = aiChar.aiPersonality || "balanced";
+        const pool = [
+            ...CHARACTER_CARDS[aiChar.id].base,
+            ...CHARACTER_CARDS[aiChar.id].extra
+        ];
+
+        gameState.aiDeck = getRandomSample(pool, 15).map(c => ({ ...c }));
+    }
+
+    function showCardRewardScreen(title, onConfirm) {
+        const rewardScreen = document.getElementById('reward-screen');
+        document.getElementById('reward-title').innerText = title;
+        const grid = document.getElementById('reward-grid');
+        grid.innerHTML = '';
+
+        const pCharId = gameState.playerChar.id;
+        const pool = [
+            ...CHARACTER_CARDS[pCharId].base,
+            ...CHARACTER_CARDS[pCharId].extra
+        ];
+        const options = getRandomSample(pool, 5);
+
+        options.forEach(card => {
+            const el = createOptionCardEl(card, {
+                statusText: '선택',
+                statusColor: '#d4af37',
+                onClick: () => {
+                    rewardScreen.classList.add('hidden');
+                    addCardToPlayerDeck(card);
+                    onConfirm();
+                }
+            });
+            grid.appendChild(el);
+        });
+
+        rewardScreen.classList.remove('hidden');
+    }
+
+    function addCardToPlayerDeck(card) {
+        const pCharId = gameState.playerChar.id;
+        if (!unlockedCardsByChar[pCharId]) unlockedCardsByChar[pCharId] = [];
+        if (!unlockedCardsByChar[pCharId].some(c => c.id === card.id)) {
+            unlockedCardsByChar[pCharId].push({ ...card });
+            saveAllData();
+        }
+
+        if (gameState.playerDeck.length < 15) {
+            gameState.playerDeck.push({ ...card });
+        } else {
+            gameState.pendingCardToAdd = { ...card };
+            openDiscardModal();
+        }
+    }
+
+    function openDiscardModal() {
+        const modal = document.getElementById('discard-modal');
+        const grid = document.getElementById('discard-grid');
+        grid.innerHTML = '';
+        modal.classList.remove('hidden');
+
+        gameState.playerDeck.forEach((card, idx) => {
+            const el = createOptionCardEl(card, {
+                statusText: '제거',
+                statusColor: '#e63946',
+                onClick: () => {
+                    gameState.playerDeck.splice(idx, 1);
+                    gameState.playerDeck.push(gameState.pendingCardToAdd);
+                    gameState.pendingCardToAdd = null;
+                    modal.classList.add('hidden');
+                }
+            });
+            grid.appendChild(el);
+        });
+    }
+
+    function startStage() {
+        gameState.round = 1;
+        gameState.playerHP = 100;
+        gameState.playerEN = 100;
+        gameState.aiHP = 100;
+        gameState.aiEN = 100;
+        gameState.p1Pos = { x: 0, y: 3 };
+        gameState.aiPos = { x: 3, y: 0 };
+        gameState.p1Guard = 0;
+        gameState.aiGuard = 0;
+        gameState.selectedSlots = [null, null, null];
+        gameState.isBattlePhase = false;
+
+        document.getElementById('p1-played-area').innerHTML = '';
+        document.getElementById('ai-played-area').innerHTML = '';
+
+        buildAIDeckForCurrentStage();
+
+        document.getElementById('ai-avatar').innerHTML = gameState.aiChar.icon;
+        document.getElementById('next-round-btn').style.display = 'none';
+        
+        const battleBtn = document.getElementById('battle-btn');
+        battleBtn.style.display = 'inline-block';
+        battleBtn.disabled = false;
+
+        document.getElementById('clear-btn').disabled = false;
+
+        if (isBgmPlaying) {
+            playCurrentBgm();
+        }
+
+        updateUI();
+        const personalityInfo = AI_PERSONALITIES[gameState.aiPersonality] || AI_PERSONALITIES.balanced;
+        document.getElementById('battle-log').innerText = `${gameState.aiChar.name} 등장! 성향: ${personalityInfo.name} (${personalityInfo.title}). 카드를 3장 선택하세요.`;
+    }
+
+    function updateUI() {
+        document.getElementById('p1-hp-bar').style.width = `${Math.max(0, gameState.playerHP)}%`;
+        document.getElementById('p1-hp-text').innerText = `HP ${Math.max(0, gameState.playerHP)} / 100`;
+        document.getElementById('p1-en-bar').style.width = `${Math.max(0, gameState.playerEN)}%`;
+        document.getElementById('p1-en-text').innerText = `EN ${Math.max(0, gameState.playerEN)} / 100`;
+
+        document.getElementById('ai-hp-bar').style.width = `${Math.max(0, gameState.aiHP)}%`;
+        document.getElementById('ai-hp-text').innerText = `HP ${Math.max(0, gameState.aiHP)} / 100`;
+        document.getElementById('ai-en-bar').style.width = `${Math.max(0, gameState.aiEN)}%`;
+        document.getElementById('ai-en-text').innerText = `EN ${Math.max(0, gameState.aiEN)} / 100`;
+
+        document.getElementById('round-indicator').childNodes[0].nodeValue = `STAGE ${gameState.stage} - ROUND ${gameState.round} `;
+
+        renderPhaseView();
+        renderMaps();
+        renderSelectDeck();
+        renderSlots();
+        checkBattleButton();
+    }
+
+    function renderPhaseView() {
+        const selectDeckGrid = document.getElementById('select-deck-grid');
+        const mainMap = document.getElementById('main-map');
+        const p1SlotsWrapper = document.getElementById('p1-slots-wrapper');
+        const p1PlayedArea = document.getElementById('p1-played-area');
+        const miniMapContainer = document.getElementById('mini-map-container');
+        const aiPlayedArea = document.getElementById('ai-played-area');
+
+        if (gameState.isBattlePhase) {
+            selectDeckGrid.classList.add('hidden');
+            mainMap.classList.remove('hidden');
+
+            p1SlotsWrapper.classList.add('hidden');
+            p1PlayedArea.classList.remove('hidden');
+
+            miniMapContainer.classList.add('hidden');
+            aiPlayedArea.classList.remove('hidden');
+        } else {
+            selectDeckGrid.classList.remove('hidden');
+            mainMap.classList.add('hidden');
+
+            p1SlotsWrapper.classList.remove('hidden');
+            p1PlayedArea.classList.add('hidden');
+
+            miniMapContainer.classList.remove('hidden');
+            aiPlayedArea.classList.add('hidden');
+        }
+    }
+
+    function renderMaps() {
+        const mainMap = document.getElementById('main-map');
+        const miniMap = document.getElementById('mini-map');
+        if (!mainMap || !miniMap) return;
+        mainMap.innerHTML = '';
+        miniMap.innerHTML = '';
+
+        for (let y = 0; y < 4; y++) {
+            for (let x = 0; x < 4; x++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell-main';
+                cell.id = `cell-${x}-${y}`;
+                
+                const isP1 = (gameState.p1Pos.x === x && gameState.p1Pos.y === y);
+                const isAI = (gameState.aiPos.x === x && gameState.aiPos.y === y);
+
+                if (isP1) cell.classList.add('p1-here');
+                if (isAI) cell.classList.add('ai-here');
+                if (isP1 && isAI) {
+                    cell.className = 'cell-main both-here';
+                }
+
+                let p1FaceLeft = false;
+                let aiFaceLeft = false;
+
+                if (gameState.p1Pos.x < gameState.aiPos.x) {
+                    p1FaceLeft = false;
+                    aiFaceLeft = true;
+                } else if (gameState.p1Pos.x > gameState.aiPos.x) {
+                    p1FaceLeft = true;
+                    aiFaceLeft = false;
+                } else {
+                    p1FaceLeft = false;
+                    aiFaceLeft = true;
+                }
+
+                const leftSub = document.createElement('div');
+                leftSub.className = `cell-sub-left ${p1FaceLeft ? 'face-left' : ''}`;
+                if (isP1) {
+                    leftSub.innerHTML = `<div class="map-char-icon">${gameState.playerChar.icon}</div>`;
+                }
+
+                const rightSub = document.createElement('div');
+                rightSub.className = `cell-sub-right ${aiFaceLeft ? 'face-left' : ''}`;
+                if (isAI) {
+                    rightSub.innerHTML = `<div class="map-char-icon">${gameState.aiChar.icon}</div>`;
+                }
+
+                cell.appendChild(leftSub);
+                cell.appendChild(rightSub);
+                mainMap.appendChild(cell);
+
+                const miniCell = document.createElement('div');
+                miniCell.className = 'mini-cell';
+                if (isP1) miniCell.classList.add('p1');
+                if (isAI) miniCell.classList.add('ai');
+                miniMap.appendChild(miniCell);
+            }
+        }
+    }
+
+    function renderCardGridHTML(card) {
+        let html = '<div class="card-grid-33">';
+        for (let i = 1; i <= 9; i++) {
+            if (card.type === 'move' && i === 5) {
+                let arrow = '';
+                const isTwo = card.dist === 2;
+                if (card.dir === 'UP') arrow = isTwo ? '▲▲' : '▲';
+                if (card.dir === 'DOWN') arrow = isTwo ? '▼▼' : '▼';
+                if (card.dir === 'LEFT') arrow = isTwo ? '◀◀' : '◀';
+                if (card.dir === 'RIGHT') arrow = isTwo ? '▶▶' : '▶';
+                if (card.dir === 'RANDOM_3') arrow = '🎲3';
+                html += `<div class="c-cell" style="font-size:${isTwo ? '7px' : '9px'};">${arrow}</div>`;
+            } else if (card.type === 'support' && i === 5) {
+                html += `<div class="c-cell support-active"></div>`;
+            } else {
+                const isActive = (card.pattern && card.pattern.includes(i)) ? 'active' : '';
+                html += `<div class="c-cell ${isActive}"></div>`;
+            }
+        }
+        html += '</div>';
+        return html;
+    }
+
+    function getEstimatedStats(untilSlotIndex) {
+        let estHP = gameState.playerHP;
+        let estEN = gameState.playerEN;
+        for (let i = 0; i < untilSlotIndex; i++) {
+            const card = gameState.selectedSlots[i];
+            if (card) {
+                estHP = Math.max(0, estHP - card.costHP);
+                estEN = Math.max(0, estEN - card.costEN);
+                if (card.effect === 'HP_UP') estHP = Math.min(100, estHP + card.val);
+                if (card.effect === 'EN_UP') estEN = Math.min(100, estEN + card.val);
+            }
+        }
+        return { estHP, estEN };
+    }
+
+    function getCardEffectDescHTML(card) {
+        if (card.effect === 'DRAIN_EN' || card.effect === 'DRAIN_EN_DELAY') {
+            return `<div class="card-effect-desc">(효과: 적중 시 상대 EN ${card.val} 감소 / Step 종료 후 발동)</div>`;
+        }
+        if (card.desc) {
+            return `<div class="card-effect-desc">${card.desc}</div>`;
+        }
+        return '';
+    }
+
+    function renderCardInnerContent(card) {
+        return `
+            <div class="card-header-box">
+                <div class="card-name">${card.name}</div>
+                ${getCardEffectDescHTML(card)}
+            </div>
+            <div class="card-bottom-box">
+                <div class="card-stats">
+                    <div>DM:${String(card.dm).padStart(2,'0')}</div>
+                    <div>EN:${String(card.costEN).padStart(2,'0')}</div>
+                    <div>HP:${String(card.costHP).padStart(2,'0')}</div>
+                </div>
+                ${renderCardGridHTML(card)}
+            </div>
+        `;
+    }
+
+    function renderSelectDeck() {
+        const deckContainer = document.getElementById('select-deck-grid');
+        if (!deckContainer) return;
+        deckContainer.innerHTML = '';
+
+        const emptySlotIdx = gameState.selectedSlots.indexOf(null);
+        const { estHP, estEN } = getEstimatedStats(emptySlotIdx !== -1 ? emptySlotIdx : 3);
+
+        gameState.playerDeck.forEach((card, index) => {
+            const isAlreadySelected = gameState.selectedSlots.some(s => s && s.deckIndex === index);
+            const canAfford = (estHP >= card.costHP) && (estEN >= card.costEN);
+
+            const div = document.createElement('div');
+            div.className = `card card-type-${card.type} ${isAlreadySelected ? 'selected' : ''} ${!canAfford ? 'disabled' : ''}`;
+            div.innerHTML = renderCardInnerContent(card);
+
+            if (!isAlreadySelected && canAfford && emptySlotIdx !== -1 && !gameState.isBattlePhase) {
+                div.onclick = () => selectCardToSlot(index);
+            }
+            deckContainer.appendChild(div);
+        });
+    }
+
+    function selectCardToSlot(deckIndex) {
+        if (gameState.isBattlePhase) return;
+        initAudio();
+        const emptySlotIdx = gameState.selectedSlots.indexOf(null);
+        if (emptySlotIdx !== -1) {
+            gameState.selectedSlots[emptySlotIdx] = { ...gameState.playerDeck[deckIndex], deckIndex };
+            updateUI();
+        }
+    }
+
+    function unselectCard(slotIdx) {
+        if (!gameState.isBattlePhase && gameState.selectedSlots[slotIdx] !== null) {
+            gameState.selectedSlots[slotIdx] = null;
+            gameState.selectedSlots = gameState.selectedSlots.filter(s => s !== null);
+            while (gameState.selectedSlots.length < 3) gameState.selectedSlots.push(null);
+            updateUI();
+        }
+    }
+
+    function clearSlots() {
+        if (!gameState.isBattlePhase) {
+            gameState.selectedSlots = [null, null, null];
+            updateUI();
+        }
+    }
+
+    function renderSlots() {
+        for (let i = 0; i < 3; i++) {
+            const slotEl = document.getElementById(`slot-${i}`);
+            if (!slotEl) continue;
+            const card = gameState.selectedSlots[i];
+            if (card) {
+                slotEl.className = `slot filled card-type-${card.type}`;
+                slotEl.innerHTML = renderCardInnerContent(card);
+            } else {
+                slotEl.className = `slot`;
+                slotEl.innerHTML = `0${i + 1}`;
+            }
+        }
+    }
+
+    function checkBattleButton() {
+        const btn = document.getElementById('battle-btn');
+        if (!btn) return;
+        if (!gameState.isBattlePhase && gameState.selectedSlots.every(s => s !== null)) {
+            btn.classList.add('active');
+            btn.disabled = false;
+        } else {
+            btn.classList.remove('active');
+            if (gameState.isBattlePhase) btn.disabled = true;
+        }
+    }
+
+    function getPriority(card) {
+        if (card.type === 'move' || card.type === 'move_attack') return 4;
+        if (card.type === 'support' && card.effect === 'GUARD') return 3;
+        if (card.type === 'attack') return 2;
+        if (card.type === 'support') return 1;
+        return 0;
+    }
+
+    function checkPotentialHit(aiPos, playerPos, pattern) {
+        if (!pattern || pattern.length === 0) return false;
+        const dx = playerPos.x - aiPos.x;
+        const dy = playerPos.y - aiPos.y;
+        if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
+            const cellNumber = (dy + 1) * 3 + (dx + 1) + 1;
+            return pattern.includes(cellNumber);
+        }
+        return false;
+    }
+
+    function dedupePositions(positions) {
+        const seen = new Set();
+        return positions.filter(p => {
+            const key = `${p.x},${p.y}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }
+
+    const GAME_MAX_ATTACK_DM = 70;
+
+    function generateSmartAICards() {
+        const aiSelectedCards = [];
+        const usedIndices = [];
+
+        let curAiPos = { ...gameState.aiPos };
+        let predictedP1Positions = [ { ...gameState.p1Pos } ];
+        let tHP = gameState.aiHP;
+        let tEN = gameState.aiEN;
+        let tPlayerHP = gameState.playerHP;
+
+        for (let step = 0; step < 3; step++) {
+            const validCardOptions = gameState.aiDeck
+                .map((card, idx) => ({ card, idx }))
+                .filter(item => !usedIndices.includes(item.idx) && tHP >= item.card.costHP && tEN >= item.card.costEN);
+
+            if (validCardOptions.length === 0) {
+                const fallback = CHARACTER_CARDS[gameState.aiChar.id].base[0];
+                aiSelectedCards.push({ ...fallback });
+                continue;
+            }
+
+            let nextPredictedP1Positions = [];
+            predictedP1Positions.forEach(pPos => {
+                nextPredictedP1Positions.push({ x: pPos.x, y: pPos.y });
+                nextPredictedP1Positions.push({ x: Math.max(0, pPos.x - 1), y: pPos.y });
+                nextPredictedP1Positions.push({ x: Math.min(3, pPos.x + 1), y: pPos.y });
+                nextPredictedP1Positions.push({ x: pPos.x, y: Math.max(0, pPos.y - 1) });
+                nextPredictedP1Positions.push({ x: pPos.x, y: Math.min(3, pPos.y + 1) });
+            });
+            nextPredictedP1Positions = dedupePositions(nextPredictedP1Positions);
+
+            let isAiInDanger = tHP <= Math.max(45, GAME_MAX_ATTACK_DM * 0.6);
+
+            let bestOption = null;
+            let maxScore = -999;
+
+            validCardOptions.forEach(item => {
+                const card = item.card;
+                let score = 0;
+                let isLethalMove = false;
+
+                if (card.type === 'attack' || card.type === 'move_attack') {
+                    let hits = false;
+                    nextPredictedP1Positions.forEach(pPos => {
+                        if (checkPotentialHit(curAiPos, pPos, card.pattern)) hits = true;
+                    });
+                    if (hits && tPlayerHP - card.dm <= 0) {
+                        isLethalMove = true;
+                        score += 1000;
+                    }
+                }
+
+                if (isAiInDanger && !isLethalMove) {
+                    if (card.effect === 'HP_UP') score += 500;
+                    else if (card.effect === 'GUARD') score += 400;
+                    else if (card.type === 'move') score += 450;
+                    else if (card.type === 'attack' || card.type === 'move_attack') score -= 500;
+                }
+
+                if (card.type === 'attack' || card.type === 'move_attack') {
+                    let hitCount = 0;
+                    nextPredictedP1Positions.forEach(pPos => {
+                        if (checkPotentialHit(curAiPos, pPos, card.pattern)) hitCount++;
+                    });
+
+                    if (hitCount > 0) {
+                        score += 45 + (hitCount * 15) + (card.dm || 0);
+                    } else {
+                        score -= 50;
+                    }
+                    if (card.effect === 'DRAIN_EN' || card.effect === 'DRAIN_EN_DELAY') score += 20;
+                }
+
+                if (card.type === 'move' || card.type === 'move_attack') {
+                    let nextPos = { ...curAiPos };
+                    const stepDist = card.dist || 1;
+                    if (card.dir === 'LEFT') nextPos.x = Math.max(0, nextPos.x - stepDist);
+                    if (card.dir === 'RIGHT') nextPos.x = Math.min(3, nextPos.x + stepDist);
+                    if (card.dir === 'UP' || card.moveDir === 'UP') nextPos.y = Math.max(0, nextPos.y - stepDist);
+                    if (card.dir === 'DOWN' || card.moveDir === 'DOWN') nextPos.y = Math.min(3, nextPos.y + stepDist);
+
+                    let totalOldDist = 0, totalNewDist = 0;
+                    nextPredictedP1Positions.forEach(pPos => {
+                        totalOldDist += Math.abs(curAiPos.x - pPos.x) + Math.abs(curAiPos.y - pPos.y);
+                        totalNewDist += Math.abs(nextPos.x - pPos.x) + Math.abs(nextPos.y - pPos.y);
+                    });
+                    let avgOldDist = totalOldDist / nextPredictedP1Positions.length;
+                    let avgNewDist = totalNewDist / nextPredictedP1Positions.length;
+
+                    if (isAiInDanger && !isLethalMove) {
+                        score += (avgNewDist > avgOldDist) ? 300 : 50;
+                    } else {
+                        if (avgNewDist < avgOldDist) {
+                            score += 35 + (avgOldDist - avgNewDist) * 15;
+                        } else {
+                            score -= 10;
+                        }
+                    }
+
+                    if (step > 0 && card.type === 'move') {
+                        const prevCard = aiSelectedCards[step - 1];
+                        if (prevCard && prevCard.type === 'move') {
+                            const opposite = { LEFT: 'RIGHT', RIGHT: 'LEFT', UP: 'DOWN', DOWN: 'UP' };
+                            if (opposite[prevCard.dir] === card.dir) {
+                                score -= 60;
+                            }
+                        }
+                    }
+                }
+
+                if (card.type === 'support') {
+                    if (card.effect === 'HP_UP' && tHP < 85) score += 65;
+                    else if (card.effect === 'EN_UP' && tEN < 45) score += 45;
+                    else if (card.effect === 'GUARD') {
+                        let currentMinDist = 99;
+                        predictedP1Positions.forEach(pPos => {
+                            let d = Math.abs(curAiPos.x - pPos.x) + Math.abs(curAiPos.y - pPos.y);
+                            if (d < currentMinDist) currentMinDist = d;
+                        });
+
+                        if (step === 0 || currentMinDist > 2) {
+                            score -= 100;
+                        } else {
+                            score += 40;
+                        }
+                    } else score += 10;
+                }
+
+                const personality = gameState.aiPersonality || "balanced";
+                if (!isAiInDanger) {
+                    if (personality === "aggressive") {
+                        if (card.type === 'attack' || card.type === 'move_attack') score += 35;
+                        if (card.type === 'move') score += 20;
+                    } else if (personality === "survival") {
+                        if (card.type === 'support') score += 30;
+                    } else if (personality === "tricky") {
+                        score += Math.random() * 15;
+                    }
+                }
+
+                if (score > maxScore) {
+                    maxScore = score;
+                    bestOption = item;
+                }
+            });
+
+            if (!bestOption) {
+                bestOption = validCardOptions[Math.floor(Math.random() * validCardOptions.length)];
+            }
+
+            usedIndices.push(bestOption.idx);
+            const pickedCard = bestOption.card;
+
+            if (pickedCard.type === 'move' || pickedCard.type === 'move_attack') {
+                const stepDist = pickedCard.dist || 1;
+                if (pickedCard.dir === 'LEFT') curAiPos.x = Math.max(0, curAiPos.x - stepDist);
+                if (pickedCard.dir === 'RIGHT') curAiPos.x = Math.min(3, curAiPos.x + stepDist);
+                if (pickedCard.dir === 'UP' || pickedCard.moveDir === 'UP') curAiPos.y = Math.max(0, curAiPos.y - 1);
+                if (pickedCard.dir === 'DOWN' || pickedCard.moveDir === 'DOWN') curAiPos.y = Math.min(3, curAiPos.y + 1);
+            }
+
+            predictedP1Positions = nextPredictedP1Positions;
+            aiSelectedCards.push({ ...pickedCard });
+            tHP = Math.max(0, tHP - pickedCard.costHP);
+            tEN = Math.max(0, tEN - pickedCard.costEN);
+        }
+
+        return aiSelectedCards;
+    }
+
+    async function showPopupBanner(text, duration = 500) {
+        const banner = document.getElementById('popup-banner');
+        if (!banner) return;
+        banner.innerText = text;
+        banner.classList.add('show');
+        await new Promise(r => setTimeout(r, duration));
+        banner.classList.remove('show');
+        await new Promise(r => setTimeout(r, 200));
+    }
+
+    async function startBattle() {
+        if (!gameState.selectedSlots.every(s => s !== null) || gameState.isBattlePhase) return;
+
+        initAudio();
+        gameState.isBattlePhase = true;
+
+        const battleBtn = document.getElementById('battle-btn');
+        battleBtn.disabled = true;
+        battleBtn.classList.remove('active');
+        document.getElementById('clear-btn').disabled = true;
+
+        updateUI();
+
+        const aiCards = generateSmartAICards();
+        const logEl = document.getElementById('battle-log');
+        const p1PlayedArea = document.getElementById('p1-played-area');
+        const aiPlayedArea = document.getElementById('ai-played-area');
+        p1PlayedArea.innerHTML = '';
+        aiPlayedArea.innerHTML = '';
+
+        await showPopupBanner(`ROUND ${gameState.round}`, 800);
+
+        for (let turn = 0; turn < 3; turn++) {
+            const pCard = gameState.selectedSlots[turn];
+            const aCard = aiCards[turn];
+
+            p1PlayedArea.innerHTML += `
+                <div class="mini-played-card ${pCard.type} card-back" id="p1-card-${turn}">
+                    ${renderCardInnerContent(pCard)}
+                </div>
+            `;
+            aiPlayedArea.innerHTML += `
+                <div class="mini-played-card ${aCard.type} card-back" id="ai-card-${turn}">
+                    ${renderCardInnerContent(aCard)}
+                </div>
+            `;
+        }
+
+        for (let turn = 0; turn < 3; turn++) {
+            const pCardEl = document.getElementById(`p1-card-${turn}`);
+            const aCardEl = document.getElementById(`ai-card-${turn}`);
+            if (pCardEl) pCardEl.classList.remove('card-back');
+            if (aCardEl) aCardEl.classList.remove('card-back');
+
+            const pCard = gameState.selectedSlots[turn];
+            const aCard = aiCards[turn];
+
+            await showPopupBanner(`Step ${turn + 1}`, 500);
+
+            if (pCardEl) pCardEl.classList.add('card-spotlight');
+            if (aCardEl) aCardEl.classList.add('card-spotlight');
+            
+            await new Promise(r => setTimeout(r, 800));
+
+            if (pCardEl) pCardEl.classList.remove('card-spotlight');
+            if (aCardEl) aCardEl.classList.remove('card-spotlight');
+
+            logEl.innerText = `[R${gameState.round} - Step${turn + 1}] P1: ${pCard.name} vs AI: ${aCard.name}`;
+
+            gameState.p1Guard = 0;
+            gameState.aiGuard = 0;
+
+            const pPriority = getPriority(pCard);
+            const aPriority = getPriority(aCard);
+
+            let firstWho, firstCard, secondWho, secondCard;
+            if (pPriority >= aPriority) {
+                firstWho = 'p1'; firstCard = pCard;
+                secondWho = 'ai'; secondCard = aCard;
+            } else {
+                firstWho = 'ai'; firstCard = aCard;
+                secondWho = 'p1'; secondCard = pCard;
+            }
+
+            let delayedDrain = null;
+            delayedDrain = await executeAction(firstWho, firstCard);
+            updateUI();
+            await new Promise(r => setTimeout(r, 400));
+
+            if (delayedDrain) {
+                if (delayedDrain.who === 'p1') gameState.aiEN = Math.max(0, gameState.aiEN - delayedDrain.val);
+                else gameState.playerEN = Math.max(0, gameState.playerEN - delayedDrain.val);
+                updateUI();
+            }
+
+            const secondDead = (secondWho === 'p1' && gameState.playerHP <= 0) || (secondWho === 'ai' && gameState.aiHP <= 0);
+            const secondIsAttack = (secondCard.type === 'attack' || secondCard.type === 'move_attack');
+
+            if (!secondDead || secondIsAttack) {
+                let delayedDrain2 = await executeAction(secondWho, secondCard);
+                updateUI();
+                await new Promise(r => setTimeout(r, 400));
+
+                if (delayedDrain2) {
+                    if (delayedDrain2.who === 'p1') gameState.aiEN = Math.max(0, gameState.aiEN - delayedDrain2.val);
+                    else gameState.playerEN = Math.max(0, gameState.playerEN - delayedDrain2.val);
+                    updateUI();
+                }
+            }
+
+            if (gameState.playerHP <= 0 || gameState.aiHP <= 0) break;
+        }
+
+        checkRoundEnd();
+    }
+
+    function checkHit(attackerPos, targetPos, pattern) {
+        const dx = targetPos.x - attackerPos.x;
+        const dy = targetPos.y - attackerPos.y;
+        if (dx >= -1 && dx <= 1 && dy >= -1 && dy <= 1) {
+            const cellNumber = (dy + 1) * 3 + (dx + 1) + 1;
+            return pattern.includes(cellNumber);
+        }
+        return false;
+    }
+
+    async function flashAttackArea(attackerPos, pattern, isP1) {
+        const flashClass = isP1 ? 'p1-attack-flash' : 'ai-attack-flash';
+        pattern.forEach(pNum => {
+            const gridY = Math.floor((pNum - 1) / 3) - 1;
+            const gridX = ((pNum - 1) % 3) - 1;
+            const targetX = attackerPos.x + gridX;
+            const targetY = attackerPos.y + gridY;
+
+            if (targetX >= 0 && targetX < 4 && targetY >= 0 && targetY < 4) {
+                const cell = document.getElementById(`cell-${targetX}-${targetY}`);
+                if (cell) cell.classList.add(flashClass);
+            }
+        });
+
+        await new Promise(r => setTimeout(r, 800));
+
+        pattern.forEach(pNum => {
+            const gridY = Math.floor((pNum - 1) / 3) - 1;
+            const gridX = ((pNum - 1) % 3) - 1;
+            const targetX = attackerPos.x + gridX;
+            const targetY = attackerPos.y + gridY;
+            if (targetX >= 0 && targetX < 4 && targetY >= 0 && targetY < 4) {
+                const cell = document.getElementById(`cell-${targetX}-${targetY}`);
+                if (cell) cell.classList.remove(flashClass);
+            }
+        });
+    }
+
+    async function executeAction(who, card) {
+        const isP1 = (who === 'p1');
+        let hp = isP1 ? gameState.playerHP : gameState.aiHP;
+        let en = isP1 ? gameState.playerEN : gameState.aiEN;
+        let pos = isP1 ? gameState.p1Pos : gameState.aiPos;
+        let enemyPos = isP1 ? gameState.aiPos : gameState.p1Pos;
+        let charObj = isP1 ? gameState.playerChar : gameState.aiChar;
+
+        if (card.type === 'support' && hp <= 0) {
+            const logEl = document.getElementById('battle-log');
+            if (logEl) logEl.innerText = `${isP1 ? 'Player1' : gameState.aiChar.name}: 선행 공격으로 사망하여 [${card.name}] 지원 효과가 발동하지 않습니다!`;
+            await new Promise(r => setTimeout(r, 600));
+            return null;
+        }
+
+        if (hp < card.costHP || en < card.costEN) {
+            const logEl = document.getElementById('battle-log');
+            if (logEl) logEl.innerText = `${isP1 ? 'Player1' : gameState.aiChar.name}: Cost 부족으로 [${card.name}] 사용 실패!`;
+            await new Promise(r => setTimeout(r, 600));
+            return null;
+        }
+
+        hp = Math.max(0, hp - card.costHP);
+        en = Math.max(0, en - card.costEN);
+
+        if (isP1) {
+            gameState.playerHP = hp;
+            gameState.playerEN = en;
+        } else {
+            gameState.aiHP = hp;
+            gameState.aiEN = en;
+        }
+        updateUI();
+
+        if (card.type === 'move_attack') {
+            playSound('move');
+            if (card.moveDir === 'UP') pos.y = Math.max(0, pos.y - 1);
+            if (card.moveDir === 'DOWN') pos.y = Math.min(3, pos.y + 1);
+            updateUI();
+            await new Promise(r => setTimeout(r, 350));
+        }
+
+        if (card.effect === 'MOVE_TO_ENEMY') {
+            playSound('move');
+            pos.x = enemyPos.x;
+            pos.y = enemyPos.y;
+            updateUI();
+            await new Promise(r => setTimeout(r, 350));
+        }
+
+        let isHitSuccess = false;
+
+        if (card.type === 'move') {
+            playSound('move');
+            const stepDist = card.dist || 1;
+            if (card.dir === 'LEFT') pos.x = Math.max(0, pos.x - stepDist);
+            if (card.dir === 'RIGHT') pos.x = Math.min(3, pos.x + stepDist);
+            if (card.dir === 'UP') pos.y = Math.max(0, pos.y - stepDist);
+            if (card.dir === 'DOWN') pos.y = Math.min(3, pos.y + stepDist);
+            if (card.dir === 'RANDOM_3') {
+                for (let r = 0; r < 3; r++) {
+                    const dirs = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
+                    const rd = dirs[Math.floor(Math.random() * dirs.length)];
+                    if (rd === 'LEFT') pos.x = Math.max(0, pos.x - 1);
+                    if (rd === 'RIGHT') pos.x = Math.min(3, pos.x + 1);
+                    if (rd === 'UP') pos.y = Math.max(0, pos.y - 1);
+                    if (rd === 'DOWN') pos.y = Math.min(3, pos.y + 1);
+                }
+            }
+        } else if (card.type === 'support') {
+            playSound('recover');
+            if (card.effect === 'EN_UP') en = Math.min(100, en + card.val);
+            if (card.effect === 'HP_UP') hp = Math.min(100, hp + card.val);
+            if (card.effect === 'GUARD') {
+                if (isP1) gameState.p1Guard = card.val;
+                else gameState.aiGuard = card.val;
+            }
+        } else if (card.type === 'attack' || card.type === 'move_attack') {
+            playSound('attack');
+
+            await flashAttackArea(pos, card.pattern, isP1);
+
+            const currentCellEl = document.getElementById(`cell-${pos.x}-${pos.y}`);
+            if (currentCellEl) {
+                const subTarget = isP1 ? currentCellEl.querySelector('.cell-sub-left img') : currentCellEl.querySelector('.cell-sub-right img');
+                if (subTarget) {
+                    let originalSrc = subTarget.src;
+                    let targetAnimGif = null;
+                    let isLawChar = false;
+
+                    if (charObj && charObj.id === 5) {
+                        const lawAtkIds = ['r_a_2', 'r_a_3', 'r_a_4', 'r_ex_a1'];
+                        if (lawAtkIds.includes(card.id)) {
+                            targetAnimGif = 'Law_Atk_Trans.gif';
+                            isLawChar = true;
+                        }
+                    } else if (charObj && charObj.id === 4) {
+                        if (card.id === 'k_a_1') {
+                            targetAnimGif = 'Kid_Atk3_trans.gif';
+                        } else {
+                            const kidGroup1 = ['k_a_2', 'k_a_3', 'k_a_4'];
+                            const kidGroup2 = ['k_ex_a1', 'k_ex_a2'];
+
+                            if (kidGroup1.includes(card.id)) {
+                                targetAnimGif = 'Kid_Atk1_Trans.gif';
+                            } else if (kidGroup2.includes(card.id)) {
+                                targetAnimGif = 'Kid_Atk2_Trans.gif';
+                            }
+                        }
+                    }
+
+                    if (targetAnimGif) {
+                        subTarget.src = targetAnimGif;
+                        const animClass = isLawChar ? 'law-action-anim-gif' : 'action-anim-gif';
+                        subTarget.classList.add(animClass);
+                        await new Promise(r => setTimeout(r, 600));
+                        subTarget.classList.remove(animClass);
+                        subTarget.src = originalSrc;
+                    }
+                }
+            }
+
+            if (checkHit(pos, enemyPos, card.pattern)) {
+                isHitSuccess = true;
+                setTimeout(() => playSound('hit'), 100);
+                let rawDm = card.dm;
+                
+                let guardVal = isP1 ? gameState.aiGuard : gameState.p1Guard;
+                if (guardVal > 0) {
+                    let absorbed = Math.min(rawDm, guardVal);
+                    rawDm -= absorbed;
+                    if (isP1) gameState.aiGuard -= absorbed;
+                    else gameState.p1Guard -= absorbed;
+                }
+
+                if (isP1) {
+                    gameState.aiHP = Math.max(0, gameState.aiHP - rawDm);
+                } else {
+                    gameState.playerHP = Math.max(0, gameState.playerHP - rawDm);
+                }
+            }
+        }
+
+        if (isP1) {
+            gameState.playerHP = hp;
+            gameState.playerEN = en;
+        } else {
+            gameState.aiHP = hp;
+            gameState.aiEN = en;
+        }
+
+        if ((card.effect === 'DRAIN_EN' || card.effect === 'DRAIN_EN_DELAY') && isHitSuccess) {
+            return { who, val: card.val };
+        }
+        return null;
+    }
+
+    function checkRoundEnd() {
+        if (gameState.playerHP <= 0 && gameState.aiHP <= 0) {
+            alert("동시 사망으로 무승부! 해당 Stage를 다시 시작합니다.");
+            startStage();
+        } else if (gameState.playerHP <= 0) {
+            alert("패배했습니다! 해당 Stage를 다시 시작합니다.");
+            startStage();
+        } else if (gameState.aiHP <= 0) {
+            if (gameState.stage >= gameState.maxStage) {
+                gameState.stageOpponents.forEach(opp => {
+                    if (!unlockedCharIds.includes(opp.id)) unlockedCharIds.push(opp.id);
+                });
+                saveAllData();
+                document.getElementById('result-screen').classList.remove('hidden');
+            } else {
+                showCardRewardScreen("Stage 클리어! 덱에 추가할 카드를 1장 고르세요", () => {
+                    gameState.stage++;
+                    startStage();
+                });
+            }
+        } else {
+            gameState.playerEN = Math.min(100, gameState.playerEN + 20);
+            gameState.aiEN = Math.min(100, gameState.aiEN + 20);
+            updateUI();
+
+            document.getElementById('battle-btn').style.display = 'none';
+            document.getElementById('next-round-btn').style.display = 'inline-block';
+            document.getElementById('battle-log').innerText = `라운드 완료 (EN +20 회복). Next Round 버튼을 누르세요.`;
+        }
+    }
+
+    function proceedToNextRound() {
+        gameState.selectedSlots = [null, null, null];
+        gameState.round++;
+        gameState.isBattlePhase = false;
+
+        document.getElementById('p1-played-area').innerHTML = '';
+        document.getElementById('ai-played-area').innerHTML = '';
+
+        document.getElementById('next-round-btn').style.display = 'none';
+        
+        const battleBtn = document.getElementById('battle-btn');
+        battleBtn.style.display = 'inline-block';
+        battleBtn.disabled = false;
+        document.getElementById('clear-btn').disabled = false;
+
+        updateUI();
+        document.getElementById('battle-log').innerText = `Round ${gameState.round} 시작! 카드를 선택하세요.`;
+    }
+
+    window.onload = function() {
+        initCharSelect();
+    };
+</script>
+
+</body>
+</html>
