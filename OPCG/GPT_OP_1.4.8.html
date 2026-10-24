@@ -151,29 +151,37 @@
             transform: scaleX(-1) !important;
         }
 
+        /* 공격 모션 공통 크기 175% 및 좌측 정렬 배치 */
         .map-char-icon img.action-anim-gif {
-            transform: scale(2.0) !important;
-            transform-origin: center center;
+            transform: scale(1.75) !important;
+            transform-origin: left center !important;
             position: absolute !important;
+            left: 0 !important;
             z-index: 100 !important;
         }
         .face-left .map-char-icon img.action-anim-gif {
-            transform: scaleX(-1) scale(2.0) !important;
-            transform-origin: center center;
+            transform: scaleX(-1) scale(1.75) !important;
+            transform-origin: right center !important;
             position: absolute !important;
+            right: 0 !important;
+            left: auto !important;
             z-index: 100 !important;
         }
 
+        /* 트라팔가 로 전용 공격 모션 (인젝션 샷, 펑크처 빌레) 크기 175% 및 좌측 정렬 */
         .map-char-icon img.law-action-anim-gif {
-            transform: scale(1.4) translate(15%, -15%) !important;
-            transform-origin: center center;
+            transform: scale(1.75) !important;
+            transform-origin: left center !important;
             position: absolute !important;
+            left: 0 !important;
             z-index: 100 !important;
         }
         .face-left .map-char-icon img.law-action-anim-gif {
-            transform: scaleX(-1) scale(1.4) translate(-15%, -15%) !important;
-            transform-origin: center center;
+            transform: scaleX(-1) scale(1.75) !important;
+            transform-origin: right center !important;
             position: absolute !important;
+            right: 0 !important;
+            left: auto !important;
             z-index: 100 !important;
         }
 
@@ -1860,10 +1868,22 @@
                     let targetAnimGif = null;
                     let isLawChar = false;
 
-                    if (charObj && charObj.id === 5) {
-                        const lawAtkIds = ['r_a_2', 'r_a_3', 'r_a_4', 'r_ex_a1'];
+                    if (charObj && charObj.id === 0) {
+                        const lAtkIds = ['l_a_1', 'l_a_2', 'l_a_3', 'l_a_4'];
+                        if (lAtkIds.includes(card.id)) {
+                            targetAnimGif = 'Source) Luffy Atk.gif';
+                        }
+                    } else if (charObj && charObj.id === 7) {
+                        const kdAtkIds1 = ['kd_a_1', 'kd_a_2', 'kd_a_3', 'kd_a_4', 'kd_ex_a1'];
+                        if (kdAtkIds1.includes(card.id)) {
+                            targetAnimGif = 'Kaido_Attk_gif.gif';
+                        } else if (card.id === 'kd_ex_a2') {
+                            targetAnimGif = 'Kaido_BB_transparent.gif';
+                        }
+                    } else if (charObj && charObj.id === 5) {
+                        const lawAtkIds = ['r_a_4', 'r_ex_a1'];
                         if (lawAtkIds.includes(card.id)) {
-                            targetAnimGif = 'Law_Atk_Trans.gif';
+                            targetAnimGif = 'Law_Injection_shot_transparent.gif';
                             isLawChar = true;
                         }
                     } else if (charObj && charObj.id === 4) {
