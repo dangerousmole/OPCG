@@ -115,8 +115,7 @@
             50% { background: rgba(69, 123, 157, 0.9); border-color: #a8dadc; }
         }
         @keyframes flash-ai {
-            0%, 100% { background: rgba(240, 240, 245, 0.35); }
-            50% { background: rgba(230, 57, 70, 0.9); border-color: #ffbe0b; }
+            0%, 100% { background: rgba(230, 57, 70, 0.9); border-color: #ffbe0b; }
         }
 
         .map-char-icon {
@@ -151,32 +150,18 @@
             transform: scaleX(-1) !important;
         }
 
-        /* 공격 모션 공통 크기 175% 및 좌측 정렬 배치 */
+        /* 공격 모션: 좌측 정렬 (오른쪽 바라볼 때) */
         .map-char-icon img.action-anim-gif {
             transform: scale(1.75) !important;
             transform-origin: left center !important;
             position: absolute !important;
             left: 0 !important;
-            z-index: 100 !important;
-        }
-        .face-left .map-char-icon img.action-anim-gif {
-            transform: scaleX(-1) scale(1.75) !important;
-            transform-origin: right center !important;
-            position: absolute !important;
-            right: 0 !important;
-            left: auto !important;
+            right: auto !important;
             z-index: 100 !important;
         }
 
-        /* 트라팔가 로 전용 공격 모션 (인젝션 샷, 펑크처 빌레) 크기 175% 및 좌측 정렬 */
-        .map-char-icon img.law-action-anim-gif {
-            transform: scale(1.75) !important;
-            transform-origin: left center !important;
-            position: absolute !important;
-            left: 0 !important;
-            z-index: 100 !important;
-        }
-        .face-left .map-char-icon img.law-action-anim-gif {
+        /* 공격 모션: 우측 정렬 (상대보다 오른쪽에 있어서 반전 flip 되었을 때) */
+        .face-left .map-char-icon img.action-anim-gif {
             transform: scaleX(-1) scale(1.75) !important;
             transform-origin: right center !important;
             position: absolute !important;
@@ -1862,31 +1847,37 @@
 
             const currentCellEl = document.getElementById(`cell-${pos.x}-${pos.y}`);
             if (currentCellEl) {
-                const subTarget = isP1 ? currentCellEl.querySelector('.cell-sub-left img') : currentCellEl.querySelector('.cell-sub-right img');
-                if (subTarget) {
-                    let originalSrc = subTarget.src;
-                    let targetAnimGif = null;
-                    let isLawChar = false;
+                const subCell = isP1 ? currentCellEl.querySelector('.cell-sub-left') : currentCellEl.querySelector('.cell-sub-right');
+                let subTarget = subCell ? subCell.querySelector('img') : null;
 
+                if (subCell) {
+                    let targetAnimGif = null;
+
+                    // 루피 (ID: 0)
                     if (charObj && charObj.id === 0) {
                         const lAtkIds = ['l_a_1', 'l_a_2', 'l_a_3', 'l_a_4'];
                         if (lAtkIds.includes(card.id)) {
                             targetAnimGif = 'Source) Luffy Atk.gif';
                         }
-                    } else if (charObj && charObj.id === 7) {
+                    } 
+                    // 카이도 (ID: 7)
+                    else if (charObj && charObj.id === 7) {
                         const kdAtkIds1 = ['kd_a_1', 'kd_a_2', 'kd_a_3', 'kd_a_4', 'kd_ex_a1'];
                         if (kdAtkIds1.includes(card.id)) {
                             targetAnimGif = 'Kaido_Attk_gif.gif';
                         } else if (card.id === 'kd_ex_a2') {
                             targetAnimGif = 'Kaido_BB_transparent.gif';
                         }
-                    } else if (charObj && charObj.id === 5) {
+                    } 
+                    // 트라팔가 로 (ID: 5)
+                    else if (charObj && charObj.id === 5) {
                         const lawAtkIds = ['r_a_4', 'r_ex_a1'];
                         if (lawAtkIds.includes(card.id)) {
                             targetAnimGif = 'Law_Injection_shot_transparent.gif';
-                            isLawChar = true;
                         }
-                    } else if (charObj && charObj.id === 4) {
+                    } 
+                    // 유스타스 키드 (ID: 4)
+                    else if (charObj && charObj.id === 4) {
                         if (card.id === 'k_a_1') {
                             targetAnimGif = 'Kid_Atk3_trans.gif';
                         } else {
@@ -1902,12 +1893,10 @@
                     }
 
                     if (targetAnimGif) {
-                        subTarget.src = targetAnimGif;
-                        const animClass = isLawChar ? 'law-action-anim-gif' : 'action-anim-gif';
-                        subTarget.classList.add(animClass);
-                        await new Promise(r => setTimeout(r, 600));
-                        subTarget.classList.remove(animClass);
-                        subTarget.src = originalSrc;
+                        const savedHTML = subCell.innerHTML;
+                        subCell.innerHTML = `<div class="map-char-icon"><img src="${targetAnimGif}" class="action-anim-gif" alt="Attack"></div>`;
+                        await new Promise(r => setTimeout(r, 700));
+                        subCell.innerHTML = savedHTML;
                     }
                 }
             }
