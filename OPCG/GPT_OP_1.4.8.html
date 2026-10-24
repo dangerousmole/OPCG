@@ -130,6 +130,15 @@
             transition: transform 0.2s ease;
         }
 
+        /* 크로커다일 크기 110% 확대 보정 */
+        .map-char-icon img[src*="CD_stnd_transparent.gif"] {
+            transform: scale(1.1) !important;
+            transform-origin: center center;
+        }
+        .face-left .map-char-icon img[src*="CD_stnd_transparent.gif"] {
+            transform: scaleX(-1) scale(1.1) !important;
+        }
+
         /* 루피 캐릭터 위치 보정 */
         .map-char-icon img[src*="Luffy Stnd.gif"] {
             transform: scale(1.1) translateY(-4%) !important;
@@ -152,39 +161,91 @@
             transform: scaleX(-1) !important;
         }
 
-        /* 일반 공격 모션 (현재 크기 기준 90% 축소 -> scale 1.26) 및 좌/우 정렬 보정 */
+        /* 일반 공격 모션 (중앙 중심축 정렬로 좌우 위치 오차 완전 해결) */
         .map-char-icon img.action-anim-gif {
             transform: scale(1.26) !important;
-            transform-origin: left center !important;
+            transform-origin: center center !important;
             position: absolute !important;
-            left: 0 !important;
-            right: auto !important;
+            left: 50% !important;
+            top: 50% !important;
+            margin-left: -50% !important;
+            margin-top: -50% !important;
             z-index: 100 !important;
         }
         .face-left .map-char-icon img.action-anim-gif {
             transform: scaleX(-1) scale(1.26) !important;
-            transform-origin: right center !important;
+            transform-origin: center center !important;
             position: absolute !important;
-            right: 0 !important;
-            left: auto !important;
+            left: 50% !important;
+            top: 50% !important;
+            margin-left: -50% !important;
+            margin-top: -50% !important;
             z-index: 100 !important;
         }
 
-        /* 카이도 보로브레스 전용 (크기 150%) 및 좌/우 정렬 보정 */
+        /* 루피 공격 모션 전용 (150% 확대) */
+        .map-char-icon img.luffy-attack-anim-gif {
+            transform: scale(1.5) !important;
+            transform-origin: center center !important;
+            position: absolute !important;
+            left: 50% !important;
+            top: 50% !important;
+            margin-left: -50% !important;
+            margin-top: -50% !important;
+            z-index: 100 !important;
+        }
+        .face-left .map-char-icon img.luffy-attack-anim-gif {
+            transform: scaleX(-1) scale(1.5) !important;
+            transform-origin: center center !important;
+            position: absolute !important;
+            left: 50% !important;
+            top: 50% !important;
+            margin-left: -50% !important;
+            margin-top: -50% !important;
+            z-index: 100 !important;
+        }
+
+        /* 로 '펑크처 빌레' 전용 (175% 확대) */
+        .map-char-icon img.punctured-anim-gif {
+            transform: scale(1.75) !important;
+            transform-origin: center center !important;
+            position: absolute !important;
+            left: 50% !important;
+            top: 50% !important;
+            margin-left: -50% !important;
+            margin-top: -50% !important;
+            z-index: 100 !important;
+        }
+        .face-left .map-char-icon img.punctured-anim-gif {
+            transform: scaleX(-1) scale(1.75) !important;
+            transform-origin: center center !important;
+            position: absolute !important;
+            left: 50% !important;
+            top: 50% !important;
+            margin-left: -50% !important;
+            margin-top: -50% !important;
+            z-index: 100 !important;
+        }
+
+        /* 카이도 보로브레스 전용 (150% 확대) */
         .map-char-icon img.borobreath-anim-gif {
             transform: scale(1.5) !important;
-            transform-origin: left center !important;
+            transform-origin: center center !important;
             position: absolute !important;
-            left: 0 !important;
-            right: auto !important;
+            left: 50% !important;
+            top: 50% !important;
+            margin-left: -50% !important;
+            margin-top: -50% !important;
             z-index: 100 !important;
         }
         .face-left .map-char-icon img.borobreath-anim-gif {
             transform: scaleX(-1) scale(1.5) !important;
-            transform-origin: right center !important;
+            transform-origin: center center !important;
             position: absolute !important;
-            right: 0 !important;
-            left: auto !important;
+            left: 50% !important;
+            top: 50% !important;
+            margin-left: -50% !important;
+            margin-top: -50% !important;
             z-index: 100 !important;
         }
 
@@ -535,7 +596,7 @@
     });
 
     function playCurrentBgm() {
-        if (!isBgmPlaying) return; // 수동으로 끈 상태라면 재생 불가
+        if (!isBgmPlaying) return; // 수동으로 끈 상태라면 자동 재생 금지
 
         if (gameState.stage === 5) {
             if (bgmAudio.src.indexOf('OPG_bgm_04.mp3') === -1) {
@@ -636,7 +697,7 @@
         } catch (e) {}
     }
 
-    /* 크로커다일(ID 2) 아이콘 변경: CD_stnd_transparent.gif 사용 */
+    /* 키자루(ID 6) 아이콘 변경: KZ_Stnd-no-bg.gif 사용 */
     const CHARACTERS = [
         { id: 0, name: "루피", icon: `<img src="Source) Luffy Stnd.gif" alt="루피">` },
         { id: 1, name: "조로", icon: `<div class="zoro-anim"></div>` },
@@ -644,7 +705,7 @@
         { id: 3, name: "도플라밍고", icon: `<img src="DF_stnd.gif" alt="도플라밍고">` },
         { id: 4, name: "유스타스 키드", icon: `<img src="Kid_Std_Trans.gif" alt="유스타스 키드">` },
         { id: 5, name: "트라팔가 로", icon: `<img src="Law_Stnd_Trans.gif" alt="트라팔가 로">` },
-        { id: 6, name: "키자루", icon: "✨" },
+        { id: 6, name: "키자루", icon: `<img src="KZ_Stnd-no-bg.gif" alt="키자루">` },
         { id: 7, name: "카이도", icon: `<div class="kaido-anim"></div>` },
         { id: 8, name: "검은수염", icon: `<div class="bb-anim"></div>` },
         { id: 9, name: "샹크스", icon: `<img src="shgif_trans2.gif" alt="샹크스">` }
@@ -1168,7 +1229,6 @@
         }
 
         updateUI();
-        /* AI 성향 안내 문구 삭제 */
         document.getElementById('battle-log').innerText = `${gameState.aiChar.name} 등장! 카드를 3장 선택하세요.`;
     }
 
@@ -1454,6 +1514,7 @@
 
     const GAME_MAX_ATTACK_DM = 70;
 
+    /* 개선된 AI 의사결정 로직: 단순 구석 도주 방지 및 3가지 전술 패턴 구현 */
     function generateSmartAICards() {
         const aiSelectedCards = [];
         const usedIndices = [];
@@ -1463,6 +1524,9 @@
         let tHP = gameState.aiHP;
         let tEN = gameState.aiEN;
         let tPlayerHP = gameState.playerHP;
+
+        // 위기 상황 시 3가지 전술 모드 중 하나 무작위 채택 (0: 킬각 카운터/역습, 1: 제자리 회복, 2: 가변 도주)
+        const lowHpTacticsMode = Math.floor(Math.random() * 3);
 
         for (let step = 0; step < 3; step++) {
             const validCardOptions = gameState.aiDeck
@@ -1495,6 +1559,7 @@
                 let score = 0;
                 let isLethalMove = false;
 
+                // 킬각(Lethal) 감지 - HP가 적어도 적을 처치 가능하면 최우선 공격
                 if (card.type === 'attack' || card.type === 'move_attack') {
                     let hits = false;
                     nextPredictedP1Positions.forEach(pPos => {
@@ -1502,15 +1567,26 @@
                     });
                     if (hits && tPlayerHP - card.dm <= 0) {
                         isLethalMove = true;
-                        score += 1000;
+                        score += 1500;
                     }
                 }
 
+                // AI 위기 상황일 때 3가지 전술 패턴에 따른 가중치 부여
                 if (isAiInDanger && !isLethalMove) {
-                    if (card.effect === 'HP_UP') score += 500;
-                    else if (card.effect === 'GUARD') score += 400;
-                    else if (card.type === 'move') score += 450;
-                    else if (card.type === 'attack' || card.type === 'move_attack') score -= 500;
+                    if (lowHpTacticsMode === 0) {
+                        // 전술 1: 킬각 역습형 (공격을 포기하지 않고 딜을 꽂음)
+                        if (card.type === 'attack' || card.type === 'move_attack') score += 150;
+                        if (card.effect === 'HP_UP') score += 200;
+                    } else if (lowHpTacticsMode === 1) {
+                        // 전술 2: 제자리/최소 이동 응급 회복형 (구석 도망 감점, 제자리 버티기)
+                        if (card.effect === 'HP_UP') score += 350;
+                        if (card.effect === 'GUARD') score += 250;
+                        if (card.type === 'move') score -= 100; // 도주 자제
+                    } else {
+                        // 전술 3: 가변 도주형 (구석 감점, 유연한 회피)
+                        if (card.effect === 'HP_UP') score += 300;
+                        if (card.type === 'move') score += 150;
+                    }
                 }
 
                 if (card.type === 'attack' || card.type === 'move_attack') {
@@ -1535,6 +1611,10 @@
                     if (card.dir === 'UP' || card.moveDir === 'UP') nextPos.y = Math.max(0, nextPos.y - stepDist);
                     if (card.dir === 'DOWN' || card.moveDir === 'DOWN') nextPos.y = Math.min(3, nextPos.y + stepDist);
 
+                    // 구석(0,0 / 3,0 / 0,3 / 3,3) 이동 패널티를 부여하여 구석 집착 해제
+                    const isCorner = (nextPos.x === 0 || nextPos.x === 3) && (nextPos.y === 0 || nextPos.y === 3);
+                    if (isCorner) score -= 150;
+
                     let totalOldDist = 0, totalNewDist = 0;
                     nextPredictedP1Positions.forEach(pPos => {
                         totalOldDist += Math.abs(curAiPos.x - pPos.x) + Math.abs(curAiPos.y - pPos.y);
@@ -1544,7 +1624,7 @@
                     let avgNewDist = totalNewDist / nextPredictedP1Positions.length;
 
                     if (isAiInDanger && !isLethalMove) {
-                        score += (avgNewDist > avgOldDist) ? 300 : 50;
+                        score += (avgNewDist > avgOldDist) ? 120 : 30;
                     } else {
                         if (avgNewDist < avgOldDist) {
                             score += 35 + (avgOldDist - avgNewDist) * 15;
@@ -1866,29 +1946,32 @@
 
                 if (subCell) {
                     let targetAnimGif = null;
-                    let isBoroBreath = false;
+                    let animType = 'normal'; // normal, luffy, boro, punctured
 
-                    // 루피 (ID: 0)
+                    // 루피 (ID: 0) - 공격 모션 150%
                     if (charObj && charObj.id === 0) {
-                        const lAtkIds = ['l_a_1', 'l_a_2', 'l_a_3', 'l_a_4'];
+                        const lAtkIds = ['l_a_1', 'l_a_2', 'l_a_3', 'l_a_4', 'l_ex_a1', 'l_ex_a2', 'l_ex_a3', 'l_ex_a4'];
                         if (lAtkIds.includes(card.id)) {
                             targetAnimGif = 'Source) Luffy Atk.gif';
+                            animType = 'luffy';
                         }
                     } 
-                    // 카이도 (ID: 7)
+                    // 카이도 (ID: 7) - 보로브레스 150% (2초)
                     else if (charObj && charObj.id === 7) {
                         const kdAtkIds1 = ['kd_a_1', 'kd_a_2', 'kd_a_3', 'kd_a_4', 'kd_ex_a1'];
                         if (kdAtkIds1.includes(card.id)) {
                             targetAnimGif = 'Kaido_Attk_gif.gif';
                         } else if (card.id === 'kd_ex_a2') {
                             targetAnimGif = 'Kaido_BB_transparent.gif';
-                            isBoroBreath = true; // 보로브레스 판정
+                            animType = 'boro';
                         }
                     } 
-                    // 트라팔가 로 (ID: 5)
+                    // 트라팔가 로 (ID: 5) - 펑크처 빌레 175%
                     else if (charObj && charObj.id === 5) {
-                        const lawAtkIds = ['r_a_4', 'r_ex_a1'];
-                        if (lawAtkIds.includes(card.id)) {
+                        if (card.id === 'r_ex_a1') {
+                            targetAnimGif = 'Law_Injection_shot_transparent.gif';
+                            animType = 'punctured'; // 펑크처 빌레 전용 175%
+                        } else {
                             targetAnimGif = 'Law_Injection_shot_transparent.gif';
                         }
                     } 
@@ -1910,9 +1993,12 @@
 
                     if (targetAnimGif) {
                         const savedHTML = subCell.innerHTML;
-                        const animClass = isBoroBreath ? 'borobreath-anim-gif' : 'action-anim-gif';
-                        // 보로브레스는 2초(2000ms) 유지, 나머지는 700ms 유지
-                        const animDuration = isBoroBreath ? 2000 : 700;
+                        let animClass = 'action-anim-gif';
+                        if (animType === 'luffy') animClass = 'luffy-attack-anim-gif';
+                        if (animType === 'boro') animClass = 'borobreath-anim-gif';
+                        if (animType === 'punctured') animClass = 'punctured-anim-gif';
+
+                        const animDuration = (animType === 'boro') ? 2000 : 700;
 
                         subCell.innerHTML = `<div class="map-char-icon"><img src="${targetAnimGif}" class="${animClass}" alt="Attack"></div>`;
                         await new Promise(r => setTimeout(r, animDuration));
