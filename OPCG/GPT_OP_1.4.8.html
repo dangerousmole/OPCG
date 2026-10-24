@@ -68,11 +68,23 @@
         .round-indicator {
             font-size: 14px; font-weight: bold; color: #d4af37;
             border: 2px solid #d4af37; padding: 3px 12px; background: #000; border-radius: 3px;
+            display: flex; align-items: center; gap: 8px;
         }
+        .bgm-controls { display: flex; align-items: center; gap: 6px; margin-left: 6px; }
         .bgm-btn {
             background: #000; border: 1px solid #d4af37; color: #ffd166;
-            padding: 4px 8px; font-size: 14px; cursor: pointer; border-radius: 4px; margin-left: 8px;
+            padding: 2px 6px; font-size: 12px; cursor: pointer; border-radius: 4px;
         }
+        
+        /* BGM 볼륨 슬라이더 디자인 */
+        .volume-slider-box {
+            display: flex; align-items: center; gap: 3px; background: #111; border: 1px solid #444;
+            padding: 2px 4px; border-radius: 3px; cursor: pointer;
+        }
+        .vol-pip {
+            width: 6px; height: 10px; background: #444; border-radius: 1px; transition: background 0.2s;
+        }
+        .vol-pip.active { background: #ffd166; }
 
         .center-area {
             flex: 1; position: relative; background: #252530;
@@ -161,7 +173,7 @@
             transform: scaleX(-1) !important;
         }
 
-        /* 일반 공격 모션 (중앙 중심축 정렬로 좌우 위치 오차 완전 해결) */
+        /* 일반 공격 모션 (중앙 중심축 정렬로 위치 오차 수정) */
         .map-char-icon img.action-anim-gif {
             transform: scale(1.26) !important;
             transform-origin: center center !important;
@@ -435,7 +447,7 @@
             max-width: 820px; max-height: 380px; overflow-y: auto; padding: 5px;
         }
         .char-card, .reward-card {
-            width: 120px; height: 135px; background: #252530; border: 2px solid #d4af37;
+            width: 120px; height: 145px; background: #252530; border: 2px solid #d4af37;
             border-radius: 6px; display: flex; flex-direction: column; align-items: center;
             justify-content: center; cursor: pointer; padding: 6px; gap: 4px; transition: transform 0.2s, filter 0.2s, opacity 0.2s;
         }
@@ -506,7 +518,15 @@
         </div>
         <div class="round-indicator" id="round-indicator">
             STAGE 1 - ROUND 1
-            <button class="bgm-btn" id="bgm-toggle-btn" onclick="toggleBGM()">🔊</button>
+            <div class="bgm-controls">
+                <button class="bgm-btn" id="bgm-toggle-btn" onclick="toggleBGM()">🔊</button>
+                <div class="volume-slider-box" id="volume-slider" title="볼륨 조절 (25% 단위)">
+                    <div class="vol-pip active" onclick="setVolumeStep(1, event)"></div>
+                    <div class="vol-pip active" onclick="setVolumeStep(2, event)"></div>
+                    <div class="vol-pip active" onclick="setVolumeStep(3, event)"></div>
+                    <div class="vol-pip active" onclick="setVolumeStep(4, event)"></div>
+                </div>
+            </div>
         </div>
         <div class="status-box">
             <div class="bars" style="align-items: flex-end;">
@@ -571,7 +591,8 @@
 
 <script>
     let audioCtx = null;
-    let isBgmPlaying = false; // BGM 수동 토글 상태 기억
+    let isBgmPlaying = false; 
+    let currentVolume = 1.0; // 기본 볼륨 100% (4칸)
 
     const normalBgmPlaylist = [
         'OPG_bgm_01.mp3',
@@ -596,16 +617,18 @@
     });
 
     function playCurrentBgm() {
-        if (!isBgmPlaying) return; // 수동으로 끈 상태라면 자동 재생 금지
+        if (!isBgmPlaying) return;
 
         if (gameState.stage === 5) {
             if (bgmAudio.src.indexOf('OPG_bgm_04.mp3') === -1) {
                 bgmAudio.src = 'OPG_bgm_04.mp3';
+                bgmAudio.volume = currentVolume;
                 bgmAudio.play().catch(e => console.log('BGM Autoplay prevented:', e));
             }
         } else {
             if (!bgmAudio.src || bgmAudio.paused || bgmAudio.src.indexOf('OPG_bgm_04.mp3') !== -1) {
                 bgmAudio.src = normalBgmPlaylist[currentBgmIndex];
+                bgmAudio.volume = currentVolume;
                 bgmAudio.play().catch(e => console.log('BGM Autoplay prevented:', e));
             }
         }
@@ -635,6 +658,25 @@
         }
     }
 
+    function setVolumeStep(step, event) {
+        if (event) event.stopPropagation();
+        currentVolume = step * 0.25; // 1단계: 0.25, 2단계: 0.5, 3단계: 0.75, 4단계: 1.0
+        bgmAudio.volume = currentVolume;
+
+        const pips = document.querySelectorAll('#volume-slider .vol-pip');
+        pips.forEach((pip, idx) => {
+            if (idx < step) pip.classList.add('active');
+            else pip.classList.remove('active');
+        });
+
+        // 음소거 상태였다가 볼륨을 올리면 자동으로 BGM 재생
+        if (!isBgmPlaying && step > 0) {
+            isBgmPlaying = true;
+            document.getElementById('bgm-toggle-btn').innerText = '🔊';
+            playCurrentBgm();
+        }
+    }
+
     function playSound(type) {
         try {
             initAudio();
@@ -647,7 +689,7 @@
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(150, now);
                 osc.frequency.exponentialRampToValueAtTime(600, now + 0.12);
-                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.setValueAtTime(0.3 * currentVolume, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
@@ -661,7 +703,7 @@
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(baseFreqs[track], now);
                 osc.frequency.exponentialRampToValueAtTime(80, now + 0.2);
-                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.setValueAtTime(0.25 * currentVolume, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
@@ -673,7 +715,7 @@
                 osc.type = 'square';
                 osc.frequency.setValueAtTime(180, now);
                 osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
-                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.setValueAtTime(0.4 * currentVolume, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
@@ -686,7 +728,7 @@
                     const gain = audioCtx.createGain();
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(f, now + idx * 0.06);
-                    gain.gain.setValueAtTime(0.2, now + idx * 0.06);
+                    gain.gain.setValueAtTime(0.2 * currentVolume, now + idx * 0.06);
                     gain.gain.linearRampToValueAtTime(0.01, now + idx * 0.06 + 0.15);
                     osc.connect(gain);
                     gain.connect(audioCtx.destination);
@@ -697,7 +739,6 @@
         } catch (e) {}
     }
 
-    /* 키자루(ID 6) 아이콘 변경: KZ_Stnd-no-bg.gif 사용 */
     const CHARACTERS = [
         { id: 0, name: "루피", icon: `<img src="Source) Luffy Stnd.gif" alt="루피">` },
         { id: 1, name: "조로", icon: `<div class="zoro-anim"></div>` },
@@ -1004,11 +1045,16 @@
         
         CHARACTERS.forEach(char => {
             const isUnlocked = unlockedCharIds.includes(char.id);
+            const totalPoolCount = (CHARACTER_CARDS[char.id]?.base?.length || 0) + (CHARACTER_CARDS[char.id]?.extra?.length || 0);
+            const collectedCount = isUnlocked ? (CHARACTER_CARDS[char.id]?.base?.length || 0) + (unlockedCardsByChar[char.id]?.length || 0) : 0;
+            const uniqueCollectedCount = Math.min(totalPoolCount, collectedCount);
+
             const div = document.createElement('div');
             div.className = `char-card ${!isUnlocked ? 'locked' : ''}`;
             div.innerHTML = `
                 <div class="map-char-icon" style="width:40px; height:40px;">${char.icon}</div>
                 <div style="font-weight:bold; font-size:11px;">${char.name}</div>
+                ${isUnlocked ? `<div style="font-size:8.5px; color:#ffd166; margin: 1px 0;">카드수집 ${uniqueCollectedCount}/${totalPoolCount}</div>` : `<div style="font-size:8.5px; color:transparent; margin: 1px 0;">-</div>`}
                 <div style="font-size:9px; color:${isUnlocked ? '#2a9d8f' : '#777'}">${isUnlocked ? '선택 가능' : '잠김'}</div>
             `;
             if (isUnlocked) {
@@ -1514,7 +1560,6 @@
 
     const GAME_MAX_ATTACK_DM = 70;
 
-    /* 개선된 AI 의사결정 로직: 단순 구석 도주 방지 및 3가지 전술 패턴 구현 */
     function generateSmartAICards() {
         const aiSelectedCards = [];
         const usedIndices = [];
@@ -1525,7 +1570,6 @@
         let tEN = gameState.aiEN;
         let tPlayerHP = gameState.playerHP;
 
-        // 위기 상황 시 3가지 전술 모드 중 하나 무작위 채택 (0: 킬각 카운터/역습, 1: 제자리 회복, 2: 가변 도주)
         const lowHpTacticsMode = Math.floor(Math.random() * 3);
 
         for (let step = 0; step < 3; step++) {
@@ -1559,7 +1603,6 @@
                 let score = 0;
                 let isLethalMove = false;
 
-                // 킬각(Lethal) 감지 - HP가 적어도 적을 처치 가능하면 최우선 공격
                 if (card.type === 'attack' || card.type === 'move_attack') {
                     let hits = false;
                     nextPredictedP1Positions.forEach(pPos => {
@@ -1571,19 +1614,15 @@
                     }
                 }
 
-                // AI 위기 상황일 때 3가지 전술 패턴에 따른 가중치 부여
                 if (isAiInDanger && !isLethalMove) {
                     if (lowHpTacticsMode === 0) {
-                        // 전술 1: 킬각 역습형 (공격을 포기하지 않고 딜을 꽂음)
                         if (card.type === 'attack' || card.type === 'move_attack') score += 150;
                         if (card.effect === 'HP_UP') score += 200;
                     } else if (lowHpTacticsMode === 1) {
-                        // 전술 2: 제자리/최소 이동 응급 회복형 (구석 도망 감점, 제자리 버티기)
                         if (card.effect === 'HP_UP') score += 350;
                         if (card.effect === 'GUARD') score += 250;
-                        if (card.type === 'move') score -= 100; // 도주 자제
+                        if (card.type === 'move') score -= 100;
                     } else {
-                        // 전술 3: 가변 도주형 (구석 감점, 유연한 회피)
                         if (card.effect === 'HP_UP') score += 300;
                         if (card.type === 'move') score += 150;
                     }
@@ -1611,7 +1650,6 @@
                     if (card.dir === 'UP' || card.moveDir === 'UP') nextPos.y = Math.max(0, nextPos.y - stepDist);
                     if (card.dir === 'DOWN' || card.moveDir === 'DOWN') nextPos.y = Math.min(3, nextPos.y + stepDist);
 
-                    // 구석(0,0 / 3,0 / 0,3 / 3,3) 이동 패널티를 부여하여 구석 집착 해제
                     const isCorner = (nextPos.x === 0 || nextPos.x === 3) && (nextPos.y === 0 || nextPos.y === 3);
                     if (isCorner) score -= 150;
 
@@ -1946,9 +1984,8 @@
 
                 if (subCell) {
                     let targetAnimGif = null;
-                    let animType = 'normal'; // normal, luffy, boro, punctured
+                    let animType = 'normal';
 
-                    // 루피 (ID: 0) - 공격 모션 150%
                     if (charObj && charObj.id === 0) {
                         const lAtkIds = ['l_a_1', 'l_a_2', 'l_a_3', 'l_a_4', 'l_ex_a1', 'l_ex_a2', 'l_ex_a3', 'l_ex_a4'];
                         if (lAtkIds.includes(card.id)) {
@@ -1956,7 +1993,6 @@
                             animType = 'luffy';
                         }
                     } 
-                    // 카이도 (ID: 7) - 보로브레스 150% (2초)
                     else if (charObj && charObj.id === 7) {
                         const kdAtkIds1 = ['kd_a_1', 'kd_a_2', 'kd_a_3', 'kd_a_4', 'kd_ex_a1'];
                         if (kdAtkIds1.includes(card.id)) {
@@ -1966,16 +2002,14 @@
                             animType = 'boro';
                         }
                     } 
-                    // 트라팔가 로 (ID: 5) - 펑크처 빌레 175%
                     else if (charObj && charObj.id === 5) {
                         if (card.id === 'r_ex_a1') {
                             targetAnimGif = 'Law_Injection_shot_transparent.gif';
-                            animType = 'punctured'; // 펑크처 빌레 전용 175%
+                            animType = 'punctured';
                         } else {
                             targetAnimGif = 'Law_Injection_shot_transparent.gif';
                         }
                     } 
-                    // 유스타스 키드 (ID: 4)
                     else if (charObj && charObj.id === 4) {
                         if (card.id === 'k_a_1') {
                             targetAnimGif = 'Kid_Atk3_trans.gif';
