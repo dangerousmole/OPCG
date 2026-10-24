@@ -107,7 +107,7 @@
         .cell-main.ai-here { background: rgba(230, 57, 70, 0.5); border-color: #e63946; }
         .cell-main.both-here { background: rgba(150, 80, 150, 0.6); border-color: #ffd166; }
         
-        /* 공격 범위 2번 깜빡이도록 수정 (0.5s * 2회 = 1초) */
+        /* 공격 범위 2번 깜빡임 (0.5s * 2회 = 1초) */
         .cell-main.p1-attack-flash { animation: flash-p1 0.5s ease-in-out 2; }
         .cell-main.ai-attack-flash { animation: flash-ai 0.5s ease-in-out 2; }
 
@@ -152,9 +152,9 @@
             transform: scaleX(-1) !important;
         }
 
-        /* 일반 공격 모션 기준 175%의 80% = 140% 크기 및 기본(오른쪽 바라볼 때) 좌측 정렬 */
+        /* 일반 공격 모션 (현재 크기 기준 90% 축소 -> scale 1.26) 및 좌/우 정렬 보정 */
         .map-char-icon img.action-anim-gif {
-            transform: scale(1.4) !important;
+            transform: scale(1.26) !important;
             transform-origin: left center !important;
             position: absolute !important;
             left: 0 !important;
@@ -162,15 +162,15 @@
             z-index: 100 !important;
         }
         .face-left .map-char-icon img.action-anim-gif {
-            transform: scaleX(-1) scale(1.4) !important;
-            transform-origin: left center !important;
+            transform: scaleX(-1) scale(1.26) !important;
+            transform-origin: right center !important;
             position: absolute !important;
-            left: 0 !important;
-            right: auto !important;
+            right: 0 !important;
+            left: auto !important;
             z-index: 100 !important;
         }
 
-        /* 카이도 보로브레스 전용 (크기 150%) 및 기본(오른쪽 바라볼 때) 좌측 정렬 */
+        /* 카이도 보로브레스 전용 (크기 150%) 및 좌/우 정렬 보정 */
         .map-char-icon img.borobreath-anim-gif {
             transform: scale(1.5) !important;
             transform-origin: left center !important;
@@ -181,10 +181,10 @@
         }
         .face-left .map-char-icon img.borobreath-anim-gif {
             transform: scaleX(-1) scale(1.5) !important;
-            transform-origin: left center !important;
+            transform-origin: right center !important;
             position: absolute !important;
-            left: 0 !important;
-            right: auto !important;
+            right: 0 !important;
+            left: auto !important;
             z-index: 100 !important;
         }
 
@@ -510,7 +510,7 @@
 
 <script>
     let audioCtx = null;
-    let isBgmPlaying = false;
+    let isBgmPlaying = false; // BGM 수동 토글 상태 기억
 
     const normalBgmPlaylist = [
         'OPG_bgm_01.mp3',
@@ -535,6 +535,8 @@
     });
 
     function playCurrentBgm() {
+        if (!isBgmPlaying) return; // 수동으로 끈 상태라면 재생 불가
+
         if (gameState.stage === 5) {
             if (bgmAudio.src.indexOf('OPG_bgm_04.mp3') === -1) {
                 bgmAudio.src = 'OPG_bgm_04.mp3';
@@ -554,12 +556,6 @@
         }
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
-        }
-        if (!isBgmPlaying) {
-            isBgmPlaying = true;
-            const btn = document.getElementById('bgm-toggle-btn');
-            if (btn) btn.innerText = '🔊';
-            playCurrentBgm();
         }
     }
 
@@ -640,10 +636,11 @@
         } catch (e) {}
     }
 
+    /* 크로커다일(ID 2) 아이콘 변경: CD_stnd_transparent.gif 사용 */
     const CHARACTERS = [
         { id: 0, name: "루피", icon: `<img src="Source) Luffy Stnd.gif" alt="루피">` },
         { id: 1, name: "조로", icon: `<div class="zoro-anim"></div>` },
-        { id: 2, name: "크로커다일", icon: "🐊" },
+        { id: 2, name: "크로커다일", icon: `<img src="CD_stnd_transparent.gif" alt="크로커다일">` },
         { id: 3, name: "도플라밍고", icon: `<img src="DF_stnd.gif" alt="도플라밍고">` },
         { id: 4, name: "유스타스 키드", icon: `<img src="Kid_Std_Trans.gif" alt="유스타스 키드">` },
         { id: 5, name: "트라팔가 로", icon: `<img src="Law_Stnd_Trans.gif" alt="트라팔가 로">` },
@@ -1171,8 +1168,8 @@
         }
 
         updateUI();
-        const personalityInfo = AI_PERSONALITIES[gameState.aiPersonality] || AI_PERSONALITIES.balanced;
-        document.getElementById('battle-log').innerText = `${gameState.aiChar.name} 등장! 성향: ${personalityInfo.name} (${personalityInfo.title}). 카드를 3장 선택하세요.`;
+        /* AI 성향 안내 문구 삭제 */
+        document.getElementById('battle-log').innerText = `${gameState.aiChar.name} 등장! 카드를 3장 선택하세요.`;
     }
 
     function updateUI() {
